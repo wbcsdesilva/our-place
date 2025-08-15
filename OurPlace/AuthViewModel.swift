@@ -36,7 +36,6 @@ class AuthViewModel: ObservableObject {
     }
     
     private func testFirebaseConnection() {
-        // Test if Firebase Auth is properly configured
         if Auth.auth().app != nil {
             print("Firebase Auth is properly configured")
         } else {
@@ -49,11 +48,16 @@ class AuthViewModel: ObservableObject {
     private func validateEmail(_ email: String) -> Bool {
         let emailRegex = "[A-Z0-9a-z._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,64}"
         let emailPredicate = NSPredicate(format: "SELF MATCHES %@", emailRegex)
+        
+        // Additional check for consecutive dots
+        if email.contains("..") {
+            return false
+        }
+        
         return emailPredicate.evaluate(with: email)
     }
     
     private func validatePassword(_ password: String) -> Bool {
-        // Password must be at least 6 characters (Firebase requirement)
         return password.count >= 6
     }
     
@@ -72,10 +76,8 @@ class AuthViewModel: ObservableObject {
     // MARK: - Authentication Methods
     
     func login(email: String, password: String) {
-        // Clear previous errors
         errorMessage = nil
         
-        // Validate inputs
         guard !email.isEmpty else {
             errorMessage = "Email is required"
             return
@@ -110,10 +112,8 @@ class AuthViewModel: ObservableObject {
     }
     
     func signup(email: String, password: String, confirmPassword: String) {
-        // Clear previous errors
         errorMessage = nil
         
-        // Validate inputs
         guard !email.isEmpty else {
             errorMessage = "Email is required"
             return
@@ -171,16 +171,12 @@ class AuthViewModel: ObservableObject {
     private func getUserFriendlyErrorMessage(from error: Error) -> String {
         let nsError = error as NSError
         
-        // Debug logging
         print("Firebase error code: \(nsError.code)")
         print("Firebase error domain: \(nsError.domain)")
         print("Firebase error description: \(nsError.localizedDescription)")
         
-        // Use AuthErrorCode constants for better maintainability
         switch nsError.code {
         case AuthErrorCode.invalidCredential.rawValue:
-            // This covers wrong password, user not found, and other credential issues
-            // Due to Firebase's security policy, we don't reveal which credential is wrong
             return "Invalid email or password. Please try again."
         case AuthErrorCode.invalidEmail.rawValue:
             return "Please enter a valid email address."

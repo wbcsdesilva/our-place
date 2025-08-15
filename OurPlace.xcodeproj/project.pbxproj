@@ -37,9 +37,22 @@
 		4929B4EC2E439F4D00E38495 /* OurPlaceUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = OurPlaceUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		4929B51B2E44E82900E38495 /* Exceptions for "OurPlace" folder in "OurPlace" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = 4929B4D12E439F4A00E38495 /* OurPlace */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		4929B4D42E439F4A00E38495 /* OurPlace */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				4929B51B2E44E82900E38495 /* Exceptions for "OurPlace" folder in "OurPlace" target */,
+			);
 			path = OurPlace;
 			sourceTree = "<group>";
 		};
@@ -419,6 +432,7 @@
 				DEVELOPMENT_ASSET_PATHS = "\"OurPlace/Preview Content\"";
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = OurPlace/Info.plist;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -447,6 +461,7 @@
 				DEVELOPMENT_ASSET_PATHS = "\"OurPlace/Preview Content\"";
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = OurPlace/Info.plist;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;

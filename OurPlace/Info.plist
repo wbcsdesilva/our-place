@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>CFBundleURLName</key>
+			<string>com.ioscw016.OurPlace.urlscheme</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>ourplace</string>
+			</array>
+		</dict>
+	</array>
+	<key>CFBundleAssociatedDomains</key>
+	<array>
+		<string>applinks:ourplace-845e0.firebaseapp.com</string>
+	</array>
+</dict>
+</plist>

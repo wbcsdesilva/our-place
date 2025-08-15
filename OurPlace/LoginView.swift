@@ -12,64 +12,84 @@ struct LoginView: View {
     @Binding var currentAuthScreen: AuthScreen
     @State private var email = ""
     @State private var password = ""
+    @State private var showForgotPassword = false
     
     private var isFormValid: Bool {
         !email.isEmpty && !password.isEmpty
     }
     
     var body: some View {
-        VStack(spacing: 20) {
-            Text("Welcome Back")
-                .font(.largeTitle)
-                .fontWeight(.bold)
-                .padding(.top, 50)
-            
-            VStack(spacing: 15) {
-                TextField("Email", text: $email)
-                    .textFieldStyle(RoundedBorderTextFieldStyle())
-                    .autocapitalization(.none)
-                    .keyboardType(.emailAddress)
+        VStack(spacing: 0) {
+            VStack(spacing: 20) {
+                Text("Welcome Back")
+                    .font(.largeTitle)
+                    .fontWeight(.bold)
+                    .padding(.top, 50)
                 
-                SecureField("Password", text: $password)
-                    .textFieldStyle(RoundedBorderTextFieldStyle())
-            }
-            .padding(.horizontal, 20)
-            
-            if let errorMessage = authVM.errorMessage {
-                Text(errorMessage)
-                    .foregroundColor(.red)
-                    .font(.caption)
-                    .multilineTextAlignment(.center)
-                    .padding(.horizontal, 20)
-            }
-            
-            Button(action: {
-                authVM.login(email: email, password: password)
-            }) {
-                if authVM.isLoading {
-                    ProgressView()
-                        .progressViewStyle(CircularProgressViewStyle(tint: .white))
-                } else {
-                    Text("Login")
-                        .fontWeight(.semibold)
+                FormSectionView(spacing: 15) {
+                    CustomTextField(
+                        placeholder: "Email",
+                        text: $email,
+                        keyboardType: .emailAddress,
+                        autocapitalization: .none,
+                        icon: "at"
+                    )
+                    
+                    CustomTextField(
+                        placeholder: "Password",
+                        text: $password,
+                        isSecure: true,
+                        icon: "key"
+                    )
                 }
-            }
-            .frame(maxWidth: .infinity)
-            .padding()
-            .background(isFormValid ? Color.blue : Color.gray)
-            .foregroundColor(.white)
-            .cornerRadius(10)
-            .padding(.horizontal, 20)
-            .disabled(authVM.isLoading || !isFormValid)
-            
-            Button(action: {
-                currentAuthScreen = .signup
-            }) {
-                Text("Don't have an account? Sign up")
-                    .foregroundColor(.blue)
+                
+                HStack {
+                    Spacer()
+                    NavigationLink(destination: ForgotPasswordView()) {
+                        Text("Forgot Password?")
+                            .font(.caption)
+                            .foregroundColor(.blue)
+                    }
+                }
+                .padding(.horizontal, 20)
+                
+                if let errorMessage = authVM.errorMessage {
+                    ErrorMessageView(message: errorMessage)
+                }
             }
             
             Spacer()
+            
+            VStack(spacing: 16) {
+                CustomButton(
+                    title: "Login",
+                    action: {
+                        authVM.login(email: email, password: password)
+                    },
+                    isLoading: authVM.isLoading,
+                    isEnabled: isFormValid,
+                    backgroundColor: .blue,
+                    disabledColor: .gray
+                )
+                .padding(.horizontal, 20)
+                
+                CustomButton(
+                    title: "Login with Face ID",
+                    action: {
+                        print("Face ID login tapped")
+                    },
+                    backgroundColor: .black
+                )
+                .padding(.horizontal, 20)
+                
+                CustomSecondaryButton(
+                    title: "Don't have an account? Sign Up!",
+                    action: {
+                        currentAuthScreen = .signup
+                    }
+                )
+            }
+            .padding(.bottom, 40)
         }
         .navigationTitle("Login")
         .navigationBarTitleDisplayMode(.large)

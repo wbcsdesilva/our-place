@@ -11,6 +11,8 @@ import Firebase
 @main
 struct OurPlaceApp: App {
     @StateObject private var authVM = AuthViewModel()
+    @State private var resetPasswordOobCode: String?
+    @State private var showResetPassword = false
     
     init() {
         // Configure Firebase
@@ -28,6 +30,39 @@ struct OurPlaceApp: App {
         WindowGroup {
             AuthWrapperView()
                 .environmentObject(authVM)
+                .fullScreenCover(isPresented: $showResetPassword) {
+                    if let oobCode = resetPasswordOobCode {
+                        NavigationStack {
+                            ResetPasswordView(oobCode: oobCode)
+                        }
+                    }
+                }
+                .onOpenURL { url in
+                    handlePasswordResetURL(url)
+                }
+        }
+    }
+    
+    // MARK: - URL Handling
+    
+    private func handlePasswordResetURL(_ url: URL) {
+        print("Received URL: \(url)")
+        
+        // Parse the URL to extract oobCode
+        guard let components = URLComponents(url: url, resolvingAgainstBaseURL: false),
+              let queryItems = components.queryItems else {
+            print("Invalid URL format")
+            return
+        }
+        
+        // Look for oobCode parameter
+        if let oobCodeItem = queryItems.first(where: { $0.name == "oobCode" }),
+           let oobCode = oobCodeItem.value {
+            print("Found oobCode: \(oobCode)")
+            resetPasswordOobCode = oobCode
+            showResetPassword = true
+        } else {
+            print("No oobCode found in URL")
         }
     }
 }
