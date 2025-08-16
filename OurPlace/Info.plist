@@ -19,5 +19,7 @@
 	<array>
 		<string>applinks:ourplace-845e0.firebaseapp.com</string>
 	</array>
+	<key>NSFaceIDUsageDescription</key>
+	<string>OurPlace uses Face ID to securely log you into your account</string>
 </dict>
 </plist>

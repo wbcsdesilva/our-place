@@ -8,17 +8,21 @@
 import SwiftUI
 import FirebaseAuth
 import Firebase
+import LocalAuthentication
 
 class AuthViewModel: ObservableObject {
     @Published var user: User?
     @Published var errorMessage: String?
     @Published var isLoading = false
+    @Published var isFaceIDAvailable = false
     
     private var authStateListener: AuthStateDidChangeListenerHandle?
+    private let faceIDManager = FaceIDManager()
     
     init() {
         setupAuthStateListener()
         testFirebaseConnection()
+        checkFaceIDAvailability()
     }
     
     deinit {
@@ -106,6 +110,9 @@ class AuthViewModel: ObservableObject {
                 
                 if let error = error {
                     self?.errorMessage = self?.getUserFriendlyErrorMessage(from: error)
+                } else {
+                    // Save credentials for Face ID login
+                    self?.saveCredentialsForFaceID(email: email, password: password)
                 }
             }
         }
@@ -161,9 +168,56 @@ class AuthViewModel: ObservableObject {
     func signOut() {
         do {
             try Auth.auth().signOut()
+            // Keep Face ID credentials for future logins
         } catch {
             errorMessage = "Failed to sign out. Please try again."
         }
+    }
+    
+    // MARK: - Face ID Methods
+    
+    private func checkFaceIDAvailability() {
+        let deviceSupported = faceIDManager.isFaceIDAvailable
+        let hasCredentials = faceIDManager.retrieveCredentials() != nil
+        isFaceIDAvailable = deviceSupported && hasCredentials
+    }
+    
+    func loginWithFaceID() async {
+        await MainActor.run {
+            isLoading = true
+            errorMessage = nil
+        }
+        
+        guard let credentials = faceIDManager.retrieveCredentials() else {
+            await MainActor.run {
+                isLoading = false
+                errorMessage = "No saved credentials found. Please log in with email and password first."
+            }
+            return
+        }
+        
+        let success = await faceIDManager.authenticateWithFaceID()
+        
+        await MainActor.run {
+            if success {
+                self.login(email: credentials.email, password: credentials.password)
+            } else {
+                self.isLoading = false
+                self.errorMessage = faceIDManager.errorMessage ?? "Face ID authentication failed"
+            }
+        }
+    }
+    
+    func saveCredentialsForFaceID(email: String, password: String) {
+        let success = faceIDManager.storeCredentials(email: email, password: password)
+        if success {
+            checkFaceIDAvailability()
+        }
+    }
+    
+    func clearFaceIDCredentials() {
+        _ = faceIDManager.clearCredentials()
+        checkFaceIDAvailability()
     }
     
     // MARK: - Error Message Mapping

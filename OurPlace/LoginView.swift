@@ -76,9 +76,13 @@ struct LoginView: View {
                 CustomButton(
                     title: "Login with Face ID",
                     action: {
-                        print("Face ID login tapped")
+                        Task {
+                            await authVM.loginWithFaceID()
+                        }
                     },
-                    backgroundColor: .black
+                    isEnabled: authVM.isFaceIDAvailable,
+                    backgroundColor: .black,
+                    disabledColor: .gray
                 )
                 .padding(.horizontal, 20)
                 
