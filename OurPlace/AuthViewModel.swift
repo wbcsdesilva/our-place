@@ -168,7 +168,12 @@ class AuthViewModel: ObservableObject {
     func signOut() {
         do {
             try Auth.auth().signOut()
-            // Keep Face ID credentials for future logins
+            // Reset Face ID authentication state and refresh availability
+            faceIDManager.resetAuthenticationState()
+            // Add a small delay to ensure state is reset, then refresh availability
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                self.checkFaceIDAvailability()
+            }
         } catch {
             errorMessage = "Failed to sign out. Please try again."
         }
@@ -177,6 +182,8 @@ class AuthViewModel: ObservableObject {
     // MARK: - Face ID Methods
     
     private func checkFaceIDAvailability() {
+        faceIDManager.refreshAvailability()
+        
         let deviceSupported = faceIDManager.isFaceIDAvailable
         let hasCredentials = faceIDManager.retrieveCredentials() != nil
         isFaceIDAvailable = deviceSupported && hasCredentials
@@ -211,7 +218,9 @@ class AuthViewModel: ObservableObject {
     func saveCredentialsForFaceID(email: String, password: String) {
         let success = faceIDManager.storeCredentials(email: email, password: password)
         if success {
-            checkFaceIDAvailability()
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                self.checkFaceIDAvailability()
+            }
         }
     }
     

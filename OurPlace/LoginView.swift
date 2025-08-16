@@ -67,7 +67,7 @@ struct LoginView: View {
                         authVM.login(email: email, password: password)
                     },
                     isLoading: authVM.isLoading,
-                    isEnabled: isFormValid,
+                    isEnabled: isFormValid && !authVM.isLoading,
                     backgroundColor: .blue,
                     disabledColor: .gray
                 )
@@ -80,7 +80,8 @@ struct LoginView: View {
                             await authVM.loginWithFaceID()
                         }
                     },
-                    isEnabled: authVM.isFaceIDAvailable,
+                    isLoading: authVM.isLoading,
+                    isEnabled: authVM.isFaceIDAvailable && !authVM.isLoading,
                     backgroundColor: .black,
                     disabledColor: .gray
                 )

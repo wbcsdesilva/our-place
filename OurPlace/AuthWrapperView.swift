@@ -17,11 +17,11 @@ struct AuthWrapperView: View {
     @State private var currentAuthScreen: AuthScreen = .login
     
     var body: some View {
-        NavigationStack {
-            Group {
-                if authVM.user != nil {
-                    HomeView()
-                } else {
+        Group {
+            if authVM.user != nil {
+                MainTabView()
+            } else {
+                NavigationStack {
                     switch currentAuthScreen {
                     case .login:
                         LoginView(currentAuthScreen: $currentAuthScreen)

@@ -11,6 +11,15 @@ import LocalAuthentication
 
 struct FaceIDManagerTests {
     
+    // Helper function to create a test manager with unique keychain service
+    private func createTestManager() -> FaceIDManager {
+        let timestamp = Date().timeIntervalSince1970
+        return FaceIDManager(
+            keychainService: "com.test.OurPlace.faceid.\(timestamp)",
+            keychainAccount: "testCredentials"
+        )
+    }
+    
     // MARK: - Initialization Tests
     
     @Test func testInitialization() async throws {
@@ -24,7 +33,7 @@ struct FaceIDManagerTests {
     // MARK: - Credential Storage Tests
     
     @Test func testStoreCredentials() async throws {
-        let manager = FaceIDManager()
+        let manager = createTestManager()
         
         // Clear any existing credentials first
         _ = manager.clearCredentials()
@@ -37,7 +46,7 @@ struct FaceIDManagerTests {
     }
     
     @Test func testRetrieveCredentials() async throws {
-        let manager = FaceIDManager()
+        let manager = createTestManager()
         
         // Clear any existing credentials first
         _ = manager.clearCredentials()
@@ -57,7 +66,7 @@ struct FaceIDManagerTests {
     }
     
     @Test func testClearCredentials() async throws {
-        let manager = FaceIDManager()
+        let manager = createTestManager()
         
         // Clear any existing credentials first
         _ = manager.clearCredentials()
@@ -93,7 +102,8 @@ struct FaceIDManagerTests {
             (LAError(.userFallback), "Please use your password to log in"),
             (LAError(.biometryNotAvailable), "Face ID is not available on this device"),
             (LAError(.biometryNotEnrolled), "Face ID is not set up on this device"),
-            (LAError(.biometryLockout), "Face ID is locked. Please use your password")
+            (LAError(.biometryLockout), "Face ID is locked. Please use your password"),
+            (LAError(.authenticationFailed), "Face ID authentication failed. Please try again")
         ]
         
         for (error, expectedMessage) in testErrors {
@@ -105,7 +115,7 @@ struct FaceIDManagerTests {
     // MARK: - Edge Cases
     
     @Test func testEmptyCredentials() async throws {
-        let manager = FaceIDManager()
+        let manager = createTestManager()
         
         // Clear any existing credentials first
         _ = manager.clearCredentials()
@@ -131,7 +141,7 @@ struct FaceIDManagerTests {
     }
     
     @Test func testSpecialCharactersInCredentials() async throws {
-        let manager = FaceIDManager()
+        let manager = createTestManager()
         
         // Clear any existing credentials first
         _ = manager.clearCredentials()
@@ -166,6 +176,8 @@ extension FaceIDManager {
             return "Face ID is not set up on this device"
         case LAError.biometryLockout.rawValue:
             return "Face ID is locked. Please use your password"
+        case LAError.authenticationFailed.rawValue:
+            return "Face ID authentication failed. Please try again"
         default:
             return "Face ID authentication failed. Please try again"
         }

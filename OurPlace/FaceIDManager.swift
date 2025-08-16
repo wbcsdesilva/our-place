@@ -15,24 +15,42 @@ class FaceIDManager: ObservableObject {
     @Published var errorMessage: String?
     
     private let context = LAContext()
-    private let keychainService = "com.ioscw016.OurPlace.faceid"
-    private let keychainAccount = "userCredentials"
+    private let keychainService: String
+    private let keychainAccount: String
     
-    init() {
+    init(keychainService: String = "com.ioscw016.OurPlace.faceid", keychainAccount: String = "userCredentials") {
+        self.keychainService = keychainService
+        self.keychainAccount = keychainAccount
         checkFaceIDAvailability()
     }
     
     // MARK: - Face ID Availability
     
     private func checkFaceIDAvailability() {
+        // Create a fresh context for availability checking to avoid stale state
+        let freshContext = LAContext()
         var error: NSError?
         
-        let canEvaluate = context.canEvaluatePolicy(.deviceOwnerAuthenticationWithBiometrics, error: &error)
-        let isAvailable = canEvaluate && context.biometryType == .faceID
+        let canEvaluateBiometrics = freshContext.canEvaluatePolicy(.deviceOwnerAuthenticationWithBiometrics, error: &error)
+        let biometryType = freshContext.biometryType
+        
+        let isAvailable = canEvaluateBiometrics && biometryType == .faceID
         
         DispatchQueue.main.async {
             self.isFaceIDAvailable = isAvailable
         }
+    }
+    
+    func refreshAvailability() {
+        checkFaceIDAvailability()
+    }
+    
+    func resetAuthenticationState() {
+        DispatchQueue.main.async {
+            self.isAuthenticated = false
+            self.errorMessage = nil
+        }
+        checkFaceIDAvailability()
     }
     
     // MARK: - Face ID Authentication
@@ -48,6 +66,8 @@ class FaceIDManager: ObservableObject {
             return false
         }
         
+        // Use a fresh context for each authentication attempt
+        let context = LAContext()
         let reason = "Log in to OurPlace"
         
         do {
@@ -112,8 +132,11 @@ class FaceIDManager: ObservableObject {
         let status = SecItemCopyMatching(query as CFDictionary, &result)
         
         guard status == errSecSuccess,
-              let data = result as? Data,
-              let json = try? JSONSerialization.jsonObject(with: data) as? [String: String],
+              let data = result as? Data else {
+            return nil
+        }
+        
+        guard let json = try? JSONSerialization.jsonObject(with: data) as? [String: String],
               let email = json["email"],
               let password = json["password"] else {
             return nil
@@ -149,6 +172,8 @@ class FaceIDManager: ObservableObject {
             return "Face ID is not set up on this device"
         case LAError.biometryLockout.rawValue:
             return "Face ID is locked. Please use your password"
+        case LAError.authenticationFailed.rawValue:
+            return "Face ID authentication failed. Please try again"
         default:
             return "Face ID authentication failed. Please try again"
         }
