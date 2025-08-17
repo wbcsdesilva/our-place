@@ -48,6 +48,15 @@ struct MainTabView: View {
                 .tag(4)
         }
         .accentColor(.blue)
+        .onAppear {
+            // Configure tab bar appearance for material background
+            let tabBarAppearance = UITabBarAppearance()
+            tabBarAppearance.configureWithDefaultBackground()
+            tabBarAppearance.backgroundColor = UIColor.systemBackground.withAlphaComponent(0.8)
+            
+            UITabBar.appearance().standardAppearance = tabBarAppearance
+            UITabBar.appearance().scrollEdgeAppearance = tabBarAppearance
+        }
     }
 }
 

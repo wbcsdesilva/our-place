@@ -21,5 +21,9 @@
 	</array>
 	<key>NSFaceIDUsageDescription</key>
 	<string>OurPlace uses Face ID to securely log you into your account</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>OurPlace needs access to your location to show you on the map and help you find nearby places</string>
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>OurPlace needs access to your location to show you on the map and help you find nearby places</string>
 </dict>
 </plist>
