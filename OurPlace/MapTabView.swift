@@ -2,7 +2,7 @@
 //  MapTabView.swift
 //  OurPlace
 //
-//  Created by Chaniru Sandive on 2025-01-XX.
+//  Created by Chaniru Sandive on 2025-08-17.
 //
 
 import SwiftUI
@@ -10,31 +10,13 @@ import MapKit
 import CoreLocation
 
 struct MapTabView: View {
-    @StateObject private var locationManager = LocationManager()
-    @State private var searchText = ""
-    @State private var cameraPosition = MapCameraPosition.region(
-        // TODO: Starting map region and camera position. This is currently set to California, change it to somehwere in Sri Lanka
-        MKCoordinateRegion(
-            center: CLLocationCoordinate2D(latitude: 37.4419, longitude: -122.1419),
-            span: MKCoordinateSpan(latitudeDelta: 0.01, longitudeDelta: 0.01)
-        )
-    )
-    
-    @State private var droppedPin: DroppedPin?
-    @State private var showPinDetails = false
-    @State private var reverseGeocodedAddress = ""
-    @State private var nearbyPlaces: [NearbyPlace] = []
-    @State private var isLoadingNearbyPlaces = false
-    @State private var currentMapRegion = MKCoordinateRegion(
-        center: CLLocationCoordinate2D(latitude: 37.4419, longitude: -122.1419),
-        span: MKCoordinateSpan(latitudeDelta: 0.01, longitudeDelta: 0.01)
-    )
+    @StateObject private var viewModel = MapViewModel()
     
     var body: some View {
         ZStack {
             MapReader { proxy in
-                Map(position: $cameraPosition) {
-                    if let userLocation = locationManager.userLocation {
+                Map(position: $viewModel.cameraPosition) {
+                    if let userLocation = viewModel.userLocation {
                         Annotation("My Location", coordinate: userLocation) {
                             Circle()
                                 .fill(Color.blue)
@@ -47,7 +29,7 @@ struct MapTabView: View {
                         }
                     }
                     
-                    if let pin = droppedPin {
+                    if let pin = viewModel.droppedPin {
                         Annotation("Dropped Pin", coordinate: pin.coordinate, anchor: .bottom) {
                             Image(systemName: "mappin.and.ellipse")
                                 .foregroundColor(.red)
@@ -58,12 +40,12 @@ struct MapTabView: View {
                 }
                 .mapControlVisibility(.hidden)
                 .onMapCameraChange(frequency: .continuous) { context in
-                    currentMapRegion = context.region
+                    viewModel.updateCurrentMapRegion(context.region)
                 }
                 .contentShape(Rectangle())
                 .onTapGesture { location in
                     if let coordinate = proxy.convert(location, from: .local) {
-                        dropPinAtCoordinate(coordinate)
+                        viewModel.dropPinAtCoordinate(coordinate)
                     }
                 }
             }
@@ -74,7 +56,7 @@ struct MapTabView: View {
                         Image(systemName: "magnifyingglass")
                             .foregroundColor(.gray)
                         
-                        TextField("Search", text: $searchText)
+                        TextField("Search", text: $viewModel.searchText)
                             .textFieldStyle(PlainTextFieldStyle())
                     }
                     .padding(.horizontal, 12)
@@ -92,7 +74,7 @@ struct MapTabView: View {
                     Spacer()
                     
                     Button(action: {
-                        centerOnUserLocation()
+                        viewModel.centerOnUserLocation()
                     }) {
                         Image(systemName: "rotate.3d.fill")
                             .foregroundColor(.white)
@@ -107,200 +89,22 @@ struct MapTabView: View {
                 }
             }
         }
-        .sheet(isPresented: $showPinDetails) {
+        .sheet(isPresented: $viewModel.showPinDetails) {
             PinDetailsSheet(
-                pin: droppedPin,
-                address: reverseGeocodedAddress,
-                nearbyPlaces: nearbyPlaces,
-                isLoading: isLoadingNearbyPlaces,
-                onSnapToPlace: snapPinToPlace,
-                onSaveAsIs: savePinAsIs,
-                onDismiss: dismissPinDetails
+                pin: viewModel.droppedPin,
+                address: viewModel.reverseGeocodedAddress,
+                nearbyPlaces: viewModel.nearbyPlaces,
+                isLoading: viewModel.isLoadingNearbyPlaces,
+                onSnapToPlace: viewModel.snapPinToPlace,
+                onSaveAsIs: viewModel.savePinAsIs,
+                onDismiss: viewModel.dismissPinDetails
             )
+            .presentationDetents([.height(400)])
+            .presentationDragIndicator(.visible)
         }
-        .onAppear {
-            locationManager.requestPermission()
-        }
-        .onChange(of: locationManager.userLocation) { _, newLocation in
-            if let location = newLocation {
-                updateRegion(to: location)
-            }
-        }
-    }
-    
-    private func centerOnUserLocation() {
-        if let userLocation = locationManager.userLocation {
-            withAnimation(.easeInOut(duration: 1.0)) {
-                cameraPosition = .region(MKCoordinateRegion(
-                    center: userLocation,
-                    span: MKCoordinateSpan(latitudeDelta: 0.01, longitudeDelta: 0.01)
-                ))
-            }
-        }
-    }
-    
-    private func updateRegion(to location: CLLocationCoordinate2D) {
-        let newRegion = MKCoordinateRegion(
-            center: location,
-            span: MKCoordinateSpan(latitudeDelta: 0.01, longitudeDelta: 0.01)
-        )
-        cameraPosition = .region(newRegion)
-        currentMapRegion = newRegion
-    }
-    
-    // MARK: - Pin Dropping Functions
-    
-    private func dropPinAtCoordinate(_ coordinate: CLLocationCoordinate2D) {
-        let pin = DroppedPin(
-            id: UUID(),
-            coordinate: coordinate,
-            timestamp: Date()
-        )
-        
-        droppedPin = pin
-        reverseGeocode(coordinate: coordinate)
-        searchNearbyPlaces(coordinate: coordinate)
-        showPinDetails = true
-    }
-    
-    private func getCurrentMapRegion() -> MKCoordinateRegion {
-        return currentMapRegion
-    }
-    
-    private func reverseGeocode(coordinate: CLLocationCoordinate2D) {
-        let geocoder = CLGeocoder()
-        let location = CLLocation(latitude: coordinate.latitude, longitude: coordinate.longitude)
-        
-        geocoder.reverseGeocodeLocation(location) { placemarks, error in
-            DispatchQueue.main.async {
-                if let placemark = placemarks?.first {
-                    self.reverseGeocodedAddress = formatAddress(from: placemark)
-                } else {
-                    self.reverseGeocodedAddress = "\(coordinate.latitude), \(coordinate.longitude)"
-                }
-            }
-        }
-    }
-    
-    private func searchNearbyPlaces(coordinate: CLLocationCoordinate2D) {
-        isLoadingNearbyPlaces = true
-        nearbyPlaces = []
-        
-        let request = MKLocalSearch.Request()
-        request.naturalLanguageQuery = "restaurant, store, business"
-        request.region = MKCoordinateRegion(
-            center: coordinate,
-            latitudinalMeters: 500,
-            longitudinalMeters: 500
-        )
-        
-        let search = MKLocalSearch(request: request)
-        search.start { response, error in
-            DispatchQueue.main.async {
-                self.isLoadingNearbyPlaces = false
-                
-                if let response = response {
-                    self.nearbyPlaces = response.mapItems.prefix(5).map { item in
-                        NearbyPlace(
-                            id: UUID(),
-                            name: item.name ?? "Unknown",
-                            address: formatAddress(from: item.placemark),
-                            coordinate: item.placemark.coordinate
-                        )
-                    }
-                }
-            }
-        }
-    }
-    
-    private func snapPinToPlace(_ place: NearbyPlace) {
-        droppedPin?.coordinate = place.coordinate
-        reverseGeocodedAddress = place.address
-        showPinDetails = false
-    }
-    
-    private func savePinAsIs() {
-        print("Saving pin at: \(droppedPin?.coordinate.latitude ?? 0), \(droppedPin?.coordinate.longitude ?? 0)")
-        showPinDetails = false
-    }
-    
-    private func dismissPinDetails() {
-        showPinDetails = false
-        droppedPin = nil
-        nearbyPlaces = []
-        reverseGeocodedAddress = ""
     }
 }
 
-// MARK: - Location Manager
-
-class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate {
-    private let locationManager = CLLocationManager()
-    
-    @Published var userLocation: CLLocationCoordinate2D?
-    @Published var authorizationStatus: CLAuthorizationStatus = .notDetermined
-    
-    override init() {
-        super.init()
-        locationManager.delegate = self
-        locationManager.desiredAccuracy = kCLLocationAccuracyBest
-    }
-    
-    func requestPermission() {
-        locationManager.requestWhenInUseAuthorization()
-    }
-    
-    func startLocationUpdates() {
-        guard authorizationStatus == .authorizedWhenInUse || authorizationStatus == .authorizedAlways else {
-            return
-        }
-        locationManager.startUpdatingLocation()
-    }
-    
-    // MARK: - CLLocationManagerDelegate
-    
-    func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {
-        authorizationStatus = manager.authorizationStatus
-        
-        switch authorizationStatus {
-        case .authorizedWhenInUse, .authorizedAlways:
-            startLocationUpdates()
-        case .denied, .restricted:
-            break
-        case .notDetermined:
-            break
-        @unknown default:
-            break
-        }
-    }
-    
-    func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
-        guard let location = locations.last else { return }
-        
-        DispatchQueue.main.async {
-            self.userLocation = location.coordinate
-        }
-    }
-    
-    func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) {
-        print("Location error: \(error.localizedDescription)")
-    }
-}
-
-// MARK: - Data Models
-
-struct DroppedPin: Identifiable {
-    let id: UUID
-    var coordinate: CLLocationCoordinate2D
-    let timestamp: Date
-}
-
-struct NearbyPlace: Identifiable {
-    let id: UUID
-    let name: String
-    let address: String
-    let coordinate: CLLocationCoordinate2D
-}
 
 // MARK: - Pin Details Sheet
 
@@ -314,38 +118,84 @@ struct PinDetailsSheet: View {
     let onDismiss: () -> Void
     
     var body: some View {
-        NavigationView {
-            VStack(spacing: 0) {
-                VStack(alignment: .leading, spacing: 8) {
-                    Text(address.isEmpty ? "Loading address..." : address)
-                        .font(.headline)
-                        .foregroundColor(.primary)
-                    
-                    if let pin = pin {
-                        Text("\(pin.coordinate.latitude, specifier: "%.4f"), \(pin.coordinate.longitude, specifier: "%.4f")")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                    }
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding()
-                .background(Color(.systemGray6))
+        VStack(spacing: 0) {
+            PinDetailsHeader(
+                pin: pin,
+                address: address,
+                onDismiss: onDismiss
+            )
+            
+            NearbyPlacesSection(
+                nearbyPlaces: nearbyPlaces,
+                isLoading: isLoading,
+                onSnapToPlace: onSnapToPlace
+            )
+            
+            Spacer()
+            
+            SavePinButton(action: onSaveAsIs)
+        }
+    }
+}
+
+// MARK: - Pin Details Components
+
+struct PinDetailsHeader: View {
+    let pin: DroppedPin?
+    let address: String
+    let onDismiss: () -> Void
+    
+    var body: some View {
+        HStack {
+            VStack(alignment: .leading, spacing: 4) {
+                Text(address.isEmpty ? "Loading address..." : address)
+                    .font(.headline)
+                    .foregroundColor(.primary)
                 
-                VStack(alignment: .leading, spacing: 12) {
-                    Text("Nearby places you may have meant")
-                        .font(.headline)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                    
-                    if isLoading {
-                        HStack {
-                            ProgressView()
-                                .scaleEffect(0.8)
-                            Text("Finding nearby places...")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                        }
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                    } else {
+                if let pin = pin {
+                    Text("\(pin.coordinate.latitude, specifier: "%.4f"), \(pin.coordinate.longitude, specifier: "%.4f")")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+            }
+            
+            Spacer()
+            
+            Button("Cancel", action: onDismiss)
+                .foregroundColor(.blue)
+        }
+        .padding()
+    }
+}
+
+struct NearbyPlacesSection: View {
+    let nearbyPlaces: [NearbyPlace]
+    let isLoading: Bool
+    let onSnapToPlace: (NearbyPlace) -> Void
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Nearby places you may have meant")
+                .font(.subheadline)
+                .fontWeight(.medium)
+                .frame(maxWidth: .infinity, alignment: .leading)
+            
+            if isLoading {
+                HStack {
+                    ProgressView()
+                        .scaleEffect(0.8)
+                    Text("Finding nearby places...")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+            } else if nearbyPlaces.isEmpty {
+                Text("No nearby places found")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                    .padding(.vertical, 8)
+            } else {
+                ScrollView {
+                    LazyVStack(spacing: 8) {
                         ForEach(nearbyPlaces) { place in
                             NearbyPlaceRow(place: place) {
                                 onSnapToPlace(place)
@@ -353,29 +203,27 @@ struct PinDetailsSheet: View {
                         }
                     }
                 }
-                .padding()
-                
-                Spacer()
-                
-                Button(action: onSaveAsIs) {
-                    Text("Save pin as is")
-                        .font(.headline)
-                        .foregroundColor(.white)
-                        .frame(maxWidth: .infinity)
-                        .padding()
-                        .background(Color.blue)
-                        .cornerRadius(12)
-                }
-                .padding()
-            }
-            .navigationTitle("Pin Dropped")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("Cancel", action: onDismiss)
-                }
+                .frame(maxHeight: 200)
             }
         }
+        .padding(.horizontal)
+    }
+}
+
+struct SavePinButton: View {
+    let action: () -> Void
+    
+    var body: some View {
+        Button(action: action) {
+            Text("Save pin as is")
+                .font(.headline)
+                .foregroundColor(.white)
+                .frame(maxWidth: .infinity)
+                .padding()
+                .background(Color.blue)
+                .cornerRadius(12)
+        }
+        .padding()
     }
 }
 
@@ -384,7 +232,7 @@ struct NearbyPlaceRow: View {
     let onTap: () -> Void
     
     var body: some View {
-        HStack {
+        HStack(spacing: 12) {
             VStack(alignment: .leading, spacing: 4) {
                 Text(place.name)
                     .font(.body)
@@ -412,61 +260,14 @@ struct NearbyPlaceRow: View {
                     .clipShape(Circle())
             }
         }
-        .padding(.vertical, 8)
+        .padding(.horizontal, 16)
+        .padding(.vertical, 12)
+        .background(Color(.systemGray6))
+        .cornerRadius(12)
+        .shadow(color: Color.black.opacity(0.05), radius: 2, x: 0, y: 1)
     }
 }
 
-// MARK: - Helper Functions
-
-func formatAddress(from placemark: CLPlacemark) -> String {
-    var addressComponents: [String] = []
-    
-    if let subThoroughfare = placemark.subThoroughfare {
-        addressComponents.append(subThoroughfare)
-    }
-    
-    if let thoroughfare = placemark.thoroughfare {
-        addressComponents.append(thoroughfare)
-    }
-    
-    if let locality = placemark.locality {
-        addressComponents.append(locality)
-    }
-    
-    return addressComponents.isEmpty ? 
-        "\(placemark.location?.coordinate.latitude ?? 0), \(placemark.location?.coordinate.longitude ?? 0)" :
-        addressComponents.joined(separator: ", ")
-}
-
-func formatAddress(from mapItem: MKPlacemark) -> String {
-    var addressComponents: [String] = []
-    
-    if let subThoroughfare = mapItem.subThoroughfare {
-        addressComponents.append(subThoroughfare)
-    }
-    
-    if let thoroughfare = mapItem.thoroughfare {
-        addressComponents.append(thoroughfare)
-    }
-    
-    if let locality = mapItem.locality {
-        addressComponents.append(locality)
-    }
-    
-    return addressComponents.isEmpty ? 
-        "\(mapItem.coordinate.latitude), \(mapItem.coordinate.longitude)" :
-        addressComponents.joined(separator: ", ")
-}
-
-// MARK: - Extensions
-
-extension CLLocationCoordinate2D: @retroactive Equatable {
-    public static func == (lhs: CLLocationCoordinate2D, rhs: CLLocationCoordinate2D) -> Bool {
-        let epsilon = 1e-10
-        return abs(lhs.latitude - rhs.latitude) < epsilon && 
-               abs(lhs.longitude - rhs.longitude) < epsilon
-    }
-}
 
 #Preview {
     MapTabView()
