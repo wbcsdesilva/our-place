@@ -22,6 +22,7 @@ struct SavePinView: View {
     @State private var loadedImages: [UIImage] = []
     @State private var attachments: [AttachmentItem] = []
     @State private var showDocumentPicker = false
+    @State private var showCreateCategory = false
     @Environment(\.dismiss) private var dismiss
     
     init(pin: DroppedPin, placeName: String, address: String) {
@@ -57,7 +58,12 @@ struct SavePinView: View {
                     }
                     
                     // Category Section
-                    CategorySection(selectedCategory: $selectedCategory)
+                    CategorySection(
+                        selectedCategory: $selectedCategory,
+                        onCreateCategory: {
+                            showCreateCategory = true
+                        }
+                    )
                     
                     // Notes Section
                     NotesSection(notes: $notes)
@@ -99,6 +105,9 @@ struct SavePinView: View {
                     .foregroundColor(.blue)
                 }
             }
+        }
+        .fullScreenCover(isPresented: $showCreateCategory) {
+            CreateCategoryView()
         }
     }
 }
@@ -223,6 +232,7 @@ struct AddressDisplay: View {
 struct CategorySection: View {
     @Binding var selectedCategory: String
     @State private var showCategoryPicker = false
+    let onCreateCategory: () -> Void
     
     let categories = [
         "🍕 Snacks", "🍽️ Restaurant", "☕ Cafe", "🏪 Shop", "🏥 Medical",
@@ -238,7 +248,7 @@ struct CategorySection: View {
                 
                 Spacer()
                 
-                Button(action: {}) {
+                Button(action: onCreateCategory) {
                     Image(systemName: "pencil.tip.crop.circle.badge.plus.fill")
                         .foregroundColor(.blue)
                         .font(.system(size: 16))
