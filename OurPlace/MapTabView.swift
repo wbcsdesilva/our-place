@@ -102,6 +102,15 @@ struct MapTabView: View {
             .presentationDetents([.height(400)])
             .presentationDragIndicator(.visible)
         }
+        .fullScreenCover(isPresented: $viewModel.showSavePinView) {
+            if let pin = viewModel.droppedPin {
+                SavePinView(
+                    pin: pin,
+                    placeName: viewModel.getPinPlaceName(),
+                    address: viewModel.reverseGeocodedAddress
+                )
+            }
+        }
     }
 }
 

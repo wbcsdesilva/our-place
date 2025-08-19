@@ -24,7 +24,9 @@ class MapViewModel: ObservableObject {
     
     @Published var droppedPin: DroppedPin?
     @Published var showPinDetails = false
+    @Published var showSavePinView = false
     @Published var reverseGeocodedAddress = ""
+    @Published var selectedPlaceName = ""
     @Published var nearbyPlaces: [NearbyPlace] = []
     @Published var isLoadingNearbyPlaces = false
     
@@ -89,13 +91,30 @@ class MapViewModel: ObservableObject {
     
     func snapPinToPlace(_ place: NearbyPlace) {
         droppedPin?.coordinate = place.coordinate
-        reverseGeocodedAddress = place.address
+        selectedPlaceName = place.name
+        // Extract actual address from place.address (remove distance text)
+        if let addressPart = place.address.components(separatedBy: " • ").first {
+            reverseGeocodedAddress = addressPart
+        } else {
+            reverseGeocodedAddress = place.address
+        }
         showPinDetails = false
+        showSavePinView = true
     }
     
     func savePinAsIs() {
-        print("Saving pin at: \(droppedPin?.coordinate.latitude ?? 0), \(droppedPin?.coordinate.longitude ?? 0)")
         showPinDetails = false
+        showSavePinView = true
+    }
+    
+    func getPinPlaceName() -> String {
+        if !selectedPlaceName.isEmpty {
+            return selectedPlaceName
+        } else if !reverseGeocodedAddress.isEmpty {
+            return reverseGeocodedAddress
+        } else {
+            return "Unknown Location"
+        }
     }
     
     func dismissPinDetails() {
@@ -103,6 +122,7 @@ class MapViewModel: ObservableObject {
         droppedPin = nil
         nearbyPlaces = []
         reverseGeocodedAddress = ""
+        selectedPlaceName = ""
     }
     
     // MARK: - Private Methods
