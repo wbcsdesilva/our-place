@@ -18,6 +18,9 @@ struct OurPlaceApp: App {
         // Configure Firebase
         FirebaseApp.configure()
         
+        // Initialize Core Data
+        _ = CoreDataManager.shared
+        
         // Verify Firebase is properly configured
         if FirebaseApp.app() != nil {
             print("Firebase successfully configured")
@@ -30,6 +33,7 @@ struct OurPlaceApp: App {
         WindowGroup {
             AuthWrapperView()
                 .environmentObject(authVM)
+                .environment(\.managedObjectContext, CoreDataManager.shared.context)
                 .fullScreenCover(isPresented: $showResetPassword) {
                     if let oobCode = resetPasswordOobCode {
                         NavigationStack {

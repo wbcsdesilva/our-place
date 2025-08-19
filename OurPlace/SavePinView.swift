@@ -12,24 +12,17 @@ import PhotosUI
 import UniformTypeIdentifiers
 
 struct SavePinView: View {
-    let pin: DroppedPin
-    let placeName: String
-    let address: String
-    @State private var editedPlaceName: String
-    @State private var selectedCategory = "🍕 Snacks"
-    @State private var notes = ""
-    @State private var selectedPhotos: [PhotosPickerItem] = []
-    @State private var loadedImages: [UIImage] = []
-    @State private var attachments: [AttachmentItem] = []
+    @StateObject private var viewModel: SavePinViewModel
     @State private var showDocumentPicker = false
     @State private var showCreateCategory = false
     @Environment(\.dismiss) private var dismiss
     
     init(pin: DroppedPin, placeName: String, address: String) {
-        self.pin = pin
-        self.placeName = placeName
-        self.address = address
-        self._editedPlaceName = State(initialValue: placeName)
+        self._viewModel = StateObject(wrappedValue: SavePinViewModel(
+            pin: pin,
+            placeName: placeName,
+            address: address
+        ))
     }
     
     var body: some View {
@@ -37,7 +30,7 @@ struct SavePinView: View {
             ScrollView {
                 VStack(spacing: 24) {
                     // Map Preview
-                    MapPreview(pin: pin)
+                    MapPreview(pin: viewModel.pin)
                         .frame(height: 200)
                         .cornerRadius(16)
                         .padding(.top, 16)
@@ -46,37 +39,39 @@ struct SavePinView: View {
                         // Place Name TextField
                         CustomTextField(
                             placeholder: "Place name",
-                            text: $editedPlaceName,
+                            text: $viewModel.editedPlaceName,
                             icon: "mappin.and.ellipse"
                         )
                         
                         // Address Display (Non-editable)
-                        AddressDisplay(address: address)
+                        AddressDisplay(address: viewModel.address)
                         
                         // Coordinates Display
-                        CoordinatesDisplay(coordinate: pin.coordinate)
+                        CoordinatesDisplay(coordinate: viewModel.pin.coordinate)
                     }
                     
                     // Category Section
                     CategorySection(
-                        selectedCategory: $selectedCategory,
+                        categories: viewModel.categories,
+                        selectedCategory: $viewModel.selectedCategory,
+                        onCategorySelected: viewModel.selectCategory,
                         onCreateCategory: {
                             showCreateCategory = true
                         }
                     )
                     
                     // Notes Section
-                    NotesSection(notes: $notes)
+                    NotesSection(notes: $viewModel.notes)
                     
                     // Photos Section
                     PhotosSection(
-                        selectedPhotos: $selectedPhotos,
-                        loadedImages: $loadedImages
+                        selectedPhotos: $viewModel.selectedPhotos,
+                        loadedImages: $viewModel.loadedImages
                     )
                     
                     // Attachments Section
                     AttachmentsSection(
-                        attachments: $attachments,
+                        attachments: $viewModel.attachments,
                         showDocumentPicker: $showDocumentPicker
                     )
                     
@@ -84,12 +79,20 @@ struct SavePinView: View {
                     CustomButton(
                         title: "Save pin",
                         action: {
-                            // TODO: Implement save functionality
+                            viewModel.savePin()
                             dismiss()
                         },
+                        isLoading: viewModel.isLoading,
                         backgroundColor: .blue
                     )
                     .padding(.top, 8)
+                    
+                    // Error Message
+                    if let errorMessage = viewModel.errorMessage {
+                        Text(errorMessage)
+                            .font(.caption)
+                            .foregroundColor(.red)
+                    }
                 }
                 .padding(.horizontal, 20)
                 .padding(.bottom, 20)
@@ -107,7 +110,7 @@ struct SavePinView: View {
             }
         }
         .fullScreenCover(isPresented: $showCreateCategory) {
-            CreateCategoryView()
+            CreateCategoryView(onCategoryCreated: viewModel.onCategoryCreated)
         }
     }
 }
@@ -230,14 +233,11 @@ struct AddressDisplay: View {
 // MARK: - Category Section Component
 
 struct CategorySection: View {
-    @Binding var selectedCategory: String
-    @State private var showCategoryPicker = false
+    let categories: [CategoryEntity]
+    @Binding var selectedCategory: CategoryEntity?
+    let onCategorySelected: (CategoryEntity) -> Void
     let onCreateCategory: () -> Void
-    
-    let categories = [
-        "🍕 Snacks", "🍽️ Restaurant", "☕ Cafe", "🏪 Shop", "🏥 Medical",
-        "⛽ Gas Station", "🏦 Bank", "🎬 Entertainment", "🏨 Hotel", "🚗 Parking"
-    ]
+    @State private var showCategoryPicker = false
     
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -260,13 +260,23 @@ struct CategorySection: View {
             
             Button(action: { showCategoryPicker.toggle() }) {
                 HStack {
-                    Text(selectedCategory)
-                        .font(.subheadline)
-                        .foregroundColor(.primary)
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 6)
-                        .background(.yellow)
-                        .cornerRadius(6)
+                    if let selectedCategory = selectedCategory {
+                        Text(selectedCategory.displayText)
+                            .font(.subheadline)
+                            .foregroundColor(.primary)
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 6)
+                            .background(selectedCategory.color)
+                            .cornerRadius(6)
+                    } else {
+                        Text("Select Category")
+                            .font(.subheadline)
+                            .foregroundColor(.secondary)
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 6)
+                            .background(.gray.opacity(0.2))
+                            .cornerRadius(6)
+                    }
                     
                     Spacer()
                     
@@ -284,8 +294,8 @@ struct CategorySection: View {
             ActionSheet(
                 title: Text("Select Category"),
                 buttons: categories.map { category in
-                    .default(Text(category)) {
-                        selectedCategory = category
+                    .default(Text(category.displayText)) {
+                        onCategorySelected(category)
                     }
                 } + [.cancel()]
             )

@@ -12,6 +12,7 @@
 		4929B5092E44504100E38495 /* FirebaseFirestore in Frameworks */ = {isa = PBXBuildFile; productRef = 4929B5082E44504100E38495 /* FirebaseFirestore */; };
 		4929B50B2E44504100E38495 /* FirebaseFunctions in Frameworks */ = {isa = PBXBuildFile; productRef = 4929B50A2E44504100E38495 /* FirebaseFunctions */; };
 		4929B50D2E44504100E38495 /* FirebaseStorage in Frameworks */ = {isa = PBXBuildFile; productRef = 4929B50C2E44504100E38495 /* FirebaseStorage */; };
+		4968A6DA2E54AF3D00EC422C /* OurPlaceModel.xcdatamodeld in Sources */ = {isa = PBXBuildFile; fileRef = 4968A6D82E54AF3D00EC422C /* OurPlaceModel.xcdatamodeld */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -35,6 +36,7 @@
 		4929B4D22E439F4A00E38495 /* OurPlace.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = OurPlace.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		4929B4E22E439F4D00E38495 /* OurPlaceTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = OurPlaceTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		4929B4EC2E439F4D00E38495 /* OurPlaceUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = OurPlaceUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		4968A6D92E54AF3D00EC422C /* OurPlaceModel.xcdatamodel */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcdatamodel; path = OurPlaceModel.xcdatamodel; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -101,6 +103,7 @@
 		4929B4C92E439F4900E38495 = {
 			isa = PBXGroup;
 			children = (
+				4968A6D82E54AF3D00EC422C /* OurPlaceModel.xcdatamodeld */,
 				4929B4D42E439F4A00E38495 /* OurPlace */,
 				4929B4E52E439F4D00E38495 /* OurPlaceTests */,
 				4929B4EF2E439F4D00E38495 /* OurPlaceUITests */,
@@ -270,6 +273,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				4968A6DA2E54AF3D00EC422C /* OurPlaceModel.xcdatamodeld in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -627,6 +631,19 @@
 			productName = FirebaseStorage;
 		};
 /* End XCSwiftPackageProductDependency section */
+
+/* Begin XCVersionGroup section */
+		4968A6D82E54AF3D00EC422C /* OurPlaceModel.xcdatamodeld */ = {
+			isa = XCVersionGroup;
+			children = (
+				4968A6D92E54AF3D00EC422C /* OurPlaceModel.xcdatamodel */,
+			);
+			currentVersion = 4968A6D92E54AF3D00EC422C /* OurPlaceModel.xcdatamodel */;
+			path = OurPlaceModel.xcdatamodeld;
+			sourceTree = "<group>";
+			versionGroupType = wrapper.xcdatamodel;
+		};
+/* End XCVersionGroup section */
 	};
 	rootObject = 4929B4CA2E439F4900E38495 /* Project object */;
 }

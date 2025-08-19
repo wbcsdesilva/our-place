@@ -8,11 +8,15 @@
 import SwiftUI
 
 struct CreateCategoryView: View {
-    @State private var categoryName = ""
-    @State private var categorySymbol = ""
-    @State private var selectedColor: Color = .blue
-    @State private var showEmojiError = false
+    @StateObject private var viewModel = CreateCategoryViewModel()
     @Environment(\.dismiss) private var dismiss
+    
+    // Callback to notify when category is created
+    let onCategoryCreated: ((CategoryEntity) -> Void)?
+    
+    init(onCategoryCreated: ((CategoryEntity) -> Void)? = nil) {
+        self.onCategoryCreated = onCategoryCreated
+    }
     
     var body: some View {
         NavigationView {
@@ -21,16 +25,17 @@ struct CreateCategoryView: View {
                     VStack(spacing: 24) {
                         VStack(spacing: 16) {
                             // Category Name Field
-                            CategoryNameField(text: $categoryName)
+                            CategoryNameField(text: $viewModel.categoryName)
                             
                             // Category Symbol Field
                             VStack(alignment: .leading, spacing: 8) {
                                 CategorySymbolFieldWithLabel(
-                                    text: $categorySymbol,
-                                    showError: $showEmojiError
+                                    text: $viewModel.categorySymbol,
+                                    showError: $viewModel.showEmojiError,
+                                    onTextChange: viewModel.validateSymbol
                                 )
                                 
-                                if showEmojiError {
+                                if viewModel.showEmojiError {
                                     Text("Please enter exactly one character")
                                         .font(.caption)
                                         .foregroundColor(.red)
@@ -40,15 +45,23 @@ struct CreateCategoryView: View {
                             
                             // Color Picker Section
                             ColorPickerSection(
-                                selectedColor: $selectedColor
+                                selectedColor: $viewModel.selectedColor
                             )
+                            
+                            // Error Message
+                            if let errorMessage = viewModel.errorMessage {
+                                Text(errorMessage)
+                                    .font(.caption)
+                                    .foregroundColor(.red)
+                                    .padding(.horizontal, 16)
+                            }
                         }
                         
                         // Preview Section
                         PreviewSection(
-                            name: categoryName,
-                            symbol: categorySymbol,
-                            color: selectedColor
+                            name: viewModel.categoryName,
+                            symbol: viewModel.categorySymbol,
+                            color: viewModel.selectedColor
                         )
                     }
                     .padding(.horizontal, 20)
@@ -61,11 +74,17 @@ struct CreateCategoryView: View {
                     
                     CustomButton(
                         title: "Create",
-                        action: createCategory,
+                        action: {
+                            if let createdCategory = viewModel.createCategory() {
+                                onCategoryCreated?(createdCategory)
+                                dismiss()
+                            }
+                        },
+                        isLoading: viewModel.isLoading,
                         backgroundColor: .blue
                     )
-                    .disabled(!isFormValid)
-                    .opacity(isFormValid ? 1.0 : 0.6)
+                    .disabled(!viewModel.isFormValid || viewModel.isLoading)
+                    .opacity(viewModel.isFormValid && !viewModel.isLoading ? 1.0 : 0.6)
                     .padding(.horizontal, 20)
                     .padding(.bottom, 34) // Safe area padding
                 }
@@ -83,29 +102,6 @@ struct CreateCategoryView: View {
                 }
             }
         }
-    }
-    
-    private var isFormValid: Bool {
-        !categoryName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
-        isValidEmoji(categorySymbol)
-    }
-    
-    private func createCategory() {
-        guard isFormValid else { return }
-        
-        // TODO: Save category to data model
-        print("Creating category: \(categorySymbol) \(categoryName) with color \(selectedColor)")
-        dismiss()
-    }
-    
-    private func isValidEmoji(_ text: String) -> Bool {
-        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
-        
-        // Check if it's exactly one character (which can be anything including emojis)
-        guard !trimmed.isEmpty else { return false }
-        
-        // Should be exactly 1 character
-        return trimmed.count == 1
     }
 }
 
@@ -145,6 +141,7 @@ struct CategoryNameField: View {
 struct CategorySymbolFieldWithLabel: View {
     @Binding var text: String
     @Binding var showError: Bool
+    let onTextChange: (String) -> Void
     @FocusState private var isFocused: Bool
     
     var body: some View {
@@ -169,14 +166,8 @@ struct CategorySymbolFieldWithLabel: View {
                             text = String(newValue.prefix(1))
                         }
                         
-                        // Validate single character on change
-                        let trimmed = newValue.trimmingCharacters(in: .whitespacesAndNewlines)
-                        if !trimmed.isEmpty {
-                            let isValid = trimmed.count == 1
-                            showError = !isValid
-                        } else {
-                            showError = false
-                        }
+                        // Call the validation callback
+                        onTextChange(text)
                     }
             }
             
