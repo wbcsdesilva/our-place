@@ -17,12 +17,17 @@ struct SavePinView: View {
     @State private var showCreateCategory = false
     @Environment(\.dismiss) private var dismiss
     
-    init(pin: DroppedPin, placeName: String, address: String) {
+    let onSaveSuccess: () -> Void
+    let onCancel: () -> Void
+    
+    init(pin: DroppedPin, placeName: String, address: String, onSaveSuccess: @escaping () -> Void = {}, onCancel: @escaping () -> Void = {}) {
         self._viewModel = StateObject(wrappedValue: SavePinViewModel(
             pin: pin,
             placeName: placeName,
             address: address
         ))
+        self.onSaveSuccess = onSaveSuccess
+        self.onCancel = onCancel
     }
     
     var body: some View {
@@ -80,6 +85,9 @@ struct SavePinView: View {
                         title: "Save pin",
                         action: {
                             viewModel.savePin()
+                            if viewModel.savedSuccessfully {
+                                onSaveSuccess()
+                            }
                             dismiss()
                         },
                         isLoading: viewModel.isLoading,
@@ -103,6 +111,7 @@ struct SavePinView: View {
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button("Cancel") {
+                        onCancel()
                         dismiss()
                     }
                     .foregroundColor(.blue)

@@ -20,6 +20,7 @@ class SavePinViewModel: ObservableObject {
     @Published var attachments: [AttachmentItem] = []
     @Published var isLoading = false
     @Published var errorMessage: String?
+    @Published var savedSuccessfully = false
     
     private let coreDataManager = CoreDataManager.shared
     let pin: DroppedPin
@@ -87,10 +88,12 @@ class SavePinViewModel: ObservableObject {
             coreDataManager.save()
             
             print("✅ Successfully saved pin: \(savedPin.placeName)")
+            savedSuccessfully = true
             
         } catch {
             errorMessage = "Failed to save pin: \(error.localizedDescription)"
             print("❌ Error saving pin: \(error)")
+            savedSuccessfully = false
         }
         
         isLoading = false

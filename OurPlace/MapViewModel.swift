@@ -106,6 +106,26 @@ class MapViewModel: ObservableObject {
         showSavePinView = true
     }
     
+    func selectSearchPlace(_ searchResult: POISearchResult) {
+        // Convert POISearchResult to NearbyPlace and use existing snapPinToPlace logic
+        let nearbyPlace = NearbyPlace(
+            id: UUID(),
+            name: searchResult.name,
+            address: searchResult.address,
+            coordinate: searchResult.coordinate
+        )
+        
+        // Create dropped pin first
+        droppedPin = DroppedPin(
+            id: UUID(),
+            coordinate: searchResult.coordinate,
+            timestamp: Date()
+        )
+        
+        // Use existing snap logic
+        snapPinToPlace(nearbyPlace)
+    }
+    
     func savePinAsIs() {
         showPinDetails = false
         showSavePinView = true
@@ -127,6 +147,25 @@ class MapViewModel: ObservableObject {
         nearbyPlaces = []
         reverseGeocodedAddress = ""
         selectedPlaceName = ""
+    }
+    
+    func onPinSavedSuccessfully() {
+        // Clear the dropped pin and refresh saved pins on map
+        droppedPin = nil
+        showSavePinView = false
+        selectedPlaceName = ""
+        reverseGeocodedAddress = ""
+        
+        // Refresh saved pins immediately
+        refreshSavedPins()
+    }
+    
+    func onSavePinCancelled() {
+        // Clear the dropped pin when save is cancelled
+        droppedPin = nil
+        showSavePinView = false
+        selectedPlaceName = ""
+        reverseGeocodedAddress = ""
     }
     
     // MARK: - Saved Pins Management

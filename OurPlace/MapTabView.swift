@@ -11,9 +11,11 @@ import CoreLocation
 
 struct MapTabView: View {
     @StateObject private var viewModel = MapViewModel()
+    @StateObject private var searchViewModel = MapSearchViewModel()
     
     var body: some View {
-        ZStack {
+        NavigationView {
+            ZStack {
             MapReader { proxy in
                 Map(position: $viewModel.cameraPosition) {
                     if let userLocation = viewModel.userLocation {
@@ -60,6 +62,13 @@ struct MapTabView: View {
                 }
                 .contentShape(Rectangle())
                 .onTapGesture { location in
+                    // Dismiss search if active
+                    if searchViewModel.isSearchActive {
+                        searchViewModel.searchText = ""
+                        return
+                    }
+                    
+                    // Otherwise drop pin
                     if let coordinate = proxy.convert(location, from: .local) {
                         viewModel.dropPinAtCoordinate(coordinate)
                     }
@@ -67,23 +76,6 @@ struct MapTabView: View {
             }
             
             VStack {
-                HStack {
-                    HStack {
-                        Image(systemName: "magnifyingglass")
-                            .foregroundColor(.gray)
-                        
-                        TextField("Search", text: $viewModel.searchText)
-                            .textFieldStyle(PlainTextFieldStyle())
-                    }
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 8)
-                    .background(Color.white)
-                    .cornerRadius(10)
-                    .shadow(radius: 2)
-                }
-                .padding(.horizontal, 16)
-                .padding(.top, 8)
-                
                 Spacer()
                 
                 HStack {
@@ -104,6 +96,170 @@ struct MapTabView: View {
                     .padding(.bottom, 16)
                 }
             }
+            
+            // Search Results Overlay
+            if searchViewModel.isSearchActive {
+                VStack {
+                    ScrollView {
+                        LazyVStack(spacing: 16) {
+                            // Your Pins Section
+                            if !searchViewModel.savedPinResults.isEmpty {
+                                VStack(alignment: .leading, spacing: 10) {
+                                    Text("Your pins")
+                                        .font(.headline)
+                                        .fontWeight(.semibold)
+                                        .padding(.horizontal, 16)
+                                    
+                                    ForEach(searchViewModel.savedPinResults) { result in
+                                        Button(action: {
+                                            let annotation = SavedPinAnnotation(savedPin: result.savedPin)
+                                            viewModel.centerOnSavedPin(annotation)
+                                            searchViewModel.searchText = ""
+                                        }) {
+                                            HStack(spacing: 12) {
+                                                // Category color circle with emoji
+                                                if let category = result.savedPin.category {
+                                                    Circle()
+                                                        .fill(category.color)
+                                                        .frame(width: 32, height: 32)
+                                                        .overlay(
+                                                            Text(category.symbol)
+                                                                .font(.system(size: 14))
+                                                                .foregroundColor(.white)
+                                                        )
+                                                } else {
+                                                    Circle()
+                                                        .fill(Color.gray)
+                                                        .frame(width: 32, height: 32)
+                                                        .overlay(
+                                                            Image(systemName: "mappin.circle.fill")
+                                                                .font(.system(size: 14))
+                                                                .foregroundColor(.white)
+                                                        )
+                                                }
+                                                
+                                                VStack(alignment: .leading, spacing: 2) {
+                                                    Text(result.savedPin.placeName)
+                                                        .font(.body)
+                                                        .foregroundColor(.primary)
+                                                    
+                                                    if !result.savedPin.shortAddress.isEmpty {
+                                                        Text(result.savedPin.shortAddress)
+                                                            .font(.caption)
+                                                            .foregroundColor(.secondary)
+                                                            .lineLimit(1)
+                                                    }
+                                                }
+                                                
+                                                Spacer()
+                                                
+                                                Image(systemName: "chevron.right")
+                                                    .font(.caption)
+                                                    .foregroundColor(.secondary)
+                                            }
+                                            .padding(12)
+                                            .background(Color(.systemGray6))
+                                            .cornerRadius(12)
+                                        }
+                                        .buttonStyle(PlainButtonStyle())
+                                        .padding(.horizontal, 16)
+                                    }
+                                }
+                            }
+                            
+                            // Places Section
+                            if searchViewModel.isLoadingPOIs {
+                                HStack {
+                                    ProgressView()
+                                    Text("Searching places...")
+                                    Spacer()
+                                }
+                                .padding()
+                            } else if !searchViewModel.poiResults.isEmpty {
+                                VStack(alignment: .leading, spacing: 10) {
+                                    Text("Places")
+                                        .font(.headline)
+                                        .fontWeight(.semibold)
+                                        .padding(.horizontal, 16)
+                                    
+                                    ForEach(searchViewModel.poiResults) { result in
+                                        HStack(spacing: 12) {
+                                            // POI icon with distance below
+                                            VStack(spacing: 4) {
+                                                Circle()
+                                                    .fill(Color.orange.opacity(0.2))
+                                                    .frame(width: 32, height: 32)
+                                                    .overlay(
+                                                        Image(systemName: "building.2.fill")
+                                                            .font(.system(size: 14))
+                                                            .foregroundColor(.orange)
+                                                    )
+                                                
+                                                if let distance = result.distance {
+                                                    Text(distance < 1000 ? String(format: "%.0fm", distance) : String(format: "%.1fkm", distance / 1000))
+                                                        .font(.caption2)
+                                                        .foregroundColor(.secondary)
+                                                }
+                                            }
+                                            
+                                            VStack(alignment: .leading, spacing: 2) {
+                                                Text(result.name)
+                                                    .font(.body)
+                                                    .foregroundColor(.primary)
+                                                    .lineLimit(1)
+                                                
+                                                Text(result.address)
+                                                    .font(.caption)
+                                                    .foregroundColor(.secondary)
+                                                    .lineLimit(2)
+                                            }
+                                            
+                                            Spacer()
+                                            
+                                            Button(action: {
+                                                viewModel.selectSearchPlace(result)
+                                                searchViewModel.searchText = ""
+                                            }) {
+                                                Image(systemName: "mappin")
+                                                    .foregroundColor(.blue)
+                                                    .font(.system(size: 16))
+                                                    .frame(width: 32, height: 32)
+                                                    .background(Color.blue.opacity(0.1))
+                                                    .clipShape(Circle())
+                                            }
+                                        }
+                                        .padding(12)
+                                        .background(Color(.systemGray6))
+                                        .cornerRadius(12)
+                                        .padding(.horizontal, 16)
+                                    }
+                                }
+                            }
+                            
+                            if !searchViewModel.hasResults && !searchViewModel.isLoadingPOIs && !searchViewModel.searchText.isEmpty {
+                                Text("No results found")
+                                    .foregroundColor(.secondary)
+                                    .padding()
+                            }
+                        }
+                        .padding(.vertical, 16)
+                    }
+                    .background(.ultraThinMaterial)
+                    .cornerRadius(16)
+                    .shadow(radius: 8)
+                    .padding(.horizontal, 16)
+                    .padding(.top, 8)
+                    .frame(maxHeight: 300)
+                    
+                    Spacer()
+                }
+                .transition(.move(edge: .top).combined(with: .opacity))
+                .animation(.easeInOut(duration: 0.2), value: searchViewModel.isSearchActive)
+            }
+        }
+        .searchable(text: $searchViewModel.searchText, prompt: "Search places or your pins")
+        .onChange(of: searchViewModel.searchText) { _, newValue in
+            searchViewModel.updateSearchText(newValue)
         }
         .sheet(isPresented: $viewModel.showPinDetails) {
             PinDetailsSheet(
@@ -123,12 +279,23 @@ struct MapTabView: View {
                 SavePinView(
                     pin: pin,
                     placeName: viewModel.getPinPlaceName(),
-                    address: viewModel.reverseGeocodedAddress
+                    address: viewModel.reverseGeocodedAddress,
+                    onSaveSuccess: viewModel.onPinSavedSuccessfully,
+                    onCancel: viewModel.onSavePinCancelled
                 )
             }
         }
         .onAppear {
             viewModel.refreshSavedPins()
+            if let userLocation = viewModel.userLocation {
+                searchViewModel.setUserLocation(userLocation)
+            }
+        }
+        .onChange(of: viewModel.userLocation) { _, newLocation in
+            if let location = newLocation {
+                searchViewModel.setUserLocation(location)
+            }
+        }
         }
     }
 }
