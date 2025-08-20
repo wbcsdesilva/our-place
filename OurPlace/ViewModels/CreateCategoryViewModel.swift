@@ -17,6 +17,7 @@ class CreateCategoryViewModel: ObservableObject {
     @Published var errorMessage: String?
     
     private let coreDataManager = CoreDataManager.shared
+    private var isResettingForm = false
     
     var isFormValid: Bool {
         !categoryName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
@@ -46,6 +47,8 @@ class CreateCategoryViewModel: ObservableObject {
     }
     
     func validateSymbol(_ text: String) {
+        // Don't show validation errors when we're resetting the form
+        guard !isResettingForm else { return }
         showEmojiError = !isValidSymbol(text)
     }
     
@@ -56,10 +59,21 @@ class CreateCategoryViewModel: ObservableObject {
     }
     
     private func resetForm() {
+        // Set flag to prevent validation during reset
+        isResettingForm = true
+        
+        // Clear error state first to prevent validation flash
+        showEmojiError = false
+        errorMessage = nil
+        
+        // Then clear the form fields
         categoryName = ""
         categorySymbol = ""
         selectedColor = .blue
-        showEmojiError = false
-        errorMessage = nil
+        
+        // Reset the flag after a brief delay to allow UI updates
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+            self.isResettingForm = false
+        }
     }
 }

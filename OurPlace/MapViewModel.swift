@@ -8,6 +8,7 @@
 import SwiftUI
 import MapKit
 import CoreLocation
+import CoreData
 
 // MARK: - Map View Model
 
@@ -29,6 +30,7 @@ class MapViewModel: ObservableObject {
     @Published var selectedPlaceName = ""
     @Published var nearbyPlaces: [NearbyPlace] = []
     @Published var isLoadingNearbyPlaces = false
+    @Published var savedPinAnnotations: [SavedPinAnnotation] = []
     
     // MARK: - Private Properties
     @Published var currentMapRegion = MKCoordinateRegion(
@@ -37,6 +39,7 @@ class MapViewModel: ObservableObject {
     )
     
     private let locationManager = LocationManager()
+    private let coreDataManager = CoreDataManager.shared
     
     // MARK: - Computed Properties
     var userLocation: CLLocationCoordinate2D? {
@@ -46,6 +49,7 @@ class MapViewModel: ObservableObject {
     // MARK: - Initialization
     init() {
         requestLocationPermission()
+        loadSavedPins()
     }
     
     // MARK: - Public Methods
@@ -123,6 +127,39 @@ class MapViewModel: ObservableObject {
         nearbyPlaces = []
         reverseGeocodedAddress = ""
         selectedPlaceName = ""
+    }
+    
+    // MARK: - Saved Pins Management
+    
+    func loadSavedPins() {
+        let savedPins = SavedPinEntity.fetchAllSavedPins(context: coreDataManager.context)
+        savedPinAnnotations = savedPins.map { SavedPinAnnotation(savedPin: $0) }
+    }
+    
+    func loadSavedPinsInRegion(_ region: MKCoordinateRegion) -> [SavedPinAnnotation] {
+        // Performance optimization: only show pins in current view region
+        return savedPinAnnotations.filter { annotation in
+            let latDelta = region.span.latitudeDelta
+            let lonDelta = region.span.longitudeDelta
+            
+            return annotation.coordinate.latitude >= region.center.latitude - latDelta/2 &&
+                   annotation.coordinate.latitude <= region.center.latitude + latDelta/2 &&
+                   annotation.coordinate.longitude >= region.center.longitude - lonDelta/2 &&
+                   annotation.coordinate.longitude <= region.center.longitude + lonDelta/2
+        }
+    }
+    
+    func refreshSavedPins() {
+        loadSavedPins()
+    }
+    
+    func centerOnSavedPin(_ annotation: SavedPinAnnotation) {
+        withAnimation(.easeInOut(duration: 1.0)) {
+            cameraPosition = .region(MKCoordinateRegion(
+                center: annotation.coordinate,
+                span: MKCoordinateSpan(latitudeDelta: 0.01, longitudeDelta: 0.01)
+            ))
+        }
     }
     
     // MARK: - Private Methods

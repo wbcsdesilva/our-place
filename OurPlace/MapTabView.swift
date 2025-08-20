@@ -37,6 +37,22 @@ struct MapTabView: View {
                                 .shadow(radius: 3)
                         }
                     }
+                    
+                    // Saved Pins
+                    ForEach(viewModel.savedPinAnnotations, id: \.savedPin.id) { annotation in
+                        Annotation(
+                            "",
+                            coordinate: annotation.coordinate,
+                            anchor: .center
+                        ) {
+                            SavedPinAnnotationView(
+                                annotation: annotation,
+                                onTap: { annotation in
+                                    viewModel.centerOnSavedPin(annotation)
+                                }
+                            )
+                        }
+                    }
                 }
                 .mapControlVisibility(.hidden)
                 .onMapCameraChange(frequency: .continuous) { context in
@@ -110,6 +126,9 @@ struct MapTabView: View {
                     address: viewModel.reverseGeocodedAddress
                 )
             }
+        }
+        .onAppear {
+            viewModel.refreshSavedPins()
         }
     }
 }

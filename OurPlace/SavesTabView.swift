@@ -2,21 +2,169 @@
 //  SavesTabView.swift
 //  OurPlace
 //
-//  Created by Chaniru Sandive on 2025-01-XX.
+//  Created by Chaniru Sandive on 2025-08-19.
 //
 
 import SwiftUI
 
 struct SavesTabView: View {
+    @StateObject private var viewModel = SavesTabViewModel()
+    
     var body: some View {
-        VStack {
-            Text("Saved Screen")
-                .font(.largeTitle)
-                .fontWeight(.bold)
+        NavigationView {
+            VStack(spacing: 0) {
+                // Segmented Picker
+                Picker("Content Type", selection: $viewModel.selectedSegment) {
+                    Text("Pins").tag(0)
+                    Text("Routes").tag(1)
+                }
+                .pickerStyle(SegmentedPickerStyle())
+                .padding(.horizontal, 20)
+                .padding(.top, 16)
+                .padding(.bottom, 20)
+                
+                // Content based on selected segment
+                if viewModel.selectedSegment == 0 {
+                    // Pins List
+                    if viewModel.filteredPins.isEmpty {
+                        EmptyPinsView()
+                    } else {
+                        PinsListView(pins: viewModel.filteredPins, viewModel: viewModel)
+                    }
+                } else {
+                    // Routes List (placeholder for now)
+                    EmptyRoutesView()
+                }
+            }
+            .navigationTitle("Your Saves")
+            .navigationBarTitleDisplayMode(.large)
+            .searchable(text: $viewModel.searchText, prompt: "Search")
+            .onAppear {
+                viewModel.refreshPins()
+            }
+        }
+    }
+}
+
+// MARK: - Pins List View
+
+struct PinsListView: View {
+    let pins: [SavedPinEntity]
+    let viewModel: SavesTabViewModel
+    
+    var body: some View {
+        ScrollView {
+            LazyVStack(spacing: 12) {
+                ForEach(pins, id: \.id) { pin in
+                    PinRowView(pin: pin, viewModel: viewModel)
+                        .padding(.horizontal, 20)
+                }
+            }
+            .padding(.vertical, 8)
+        }
+    }
+}
+
+// MARK: - Pin Row View
+
+struct PinRowView: View {
+    let pin: SavedPinEntity
+    let viewModel: SavesTabViewModel
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            // Pin name
+            Text(pin.placeName)
+                .font(.headline)
+                .foregroundColor(.primary)
+                .lineLimit(1)
+            
+            // Address
+            Text(pin.shortAddress)
+                .font(.subheadline)
+                .foregroundColor(.secondary)
+                .lineLimit(2)
+            
+            // Category and date row
+            HStack {
+                // Category
+                if let category = pin.category {
+                    Text(category.displayText)
+                        .font(.caption)
+                        .fontWeight(.medium)
+                        .foregroundColor(.primary)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 4)
+                        .background(category.color)
+                        .cornerRadius(4)
+                }
+                
+                Spacer()
+                
+                // Date
+                Text(viewModel.formatDate(pin.createdAt))
+                    .font(.caption)
+                    .fontWeight(.semibold)
+                    .foregroundColor(.secondary)
+            }
+        }
+        .padding(16)
+        .background(.regularMaterial)
+        .cornerRadius(12)
+    }
+}
+
+// MARK: - Empty States
+
+struct EmptyPinsView: View {
+    var body: some View {
+        VStack(spacing: 16) {
+            Spacer()
+            
+            Image(systemName: "mappin.and.ellipse")
+                .font(.system(size: 48))
+                .foregroundColor(.secondary)
+            
+            Text("No Saved Pins")
+                .font(.title2)
+                .fontWeight(.semibold)
+                .foregroundColor(.primary)
+            
+            Text("Your saved pins will appear here")
+                .font(.subheadline)
+                .foregroundColor(.secondary)
+                .multilineTextAlignment(.center)
+            
+            Spacer()
+        }
+    }
+}
+
+struct EmptyRoutesView: View {
+    var body: some View {
+        VStack(spacing: 16) {
+            Spacer()
+            
+            Image(systemName: "point.3.connected.trianglepath.dotted")
+                .font(.system(size: 48))
+                .foregroundColor(.secondary)
+            
+            Text("No Saved Routes")
+                .font(.title2)
+                .fontWeight(.semibold)
+                .foregroundColor(.primary)
+            
+            Text("Your saved routes will appear here")
+                .font(.subheadline)
+                .foregroundColor(.secondary)
+                .multilineTextAlignment(.center)
+            
+            Spacer()
         }
     }
 }
 
 #Preview {
     SavesTabView()
+        .environment(\.managedObjectContext, CoreDataManager.shared.context)
 }
