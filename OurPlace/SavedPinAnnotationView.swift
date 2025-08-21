@@ -16,27 +16,35 @@ struct SavedPinAnnotationView: View {
     
     var body: some View {
         VStack(spacing: 4) {
-            // Custom Pin with Category
-            ZStack {
-                // Pin background with category color
-                Circle()
-                    .fill(annotation.savedPin.category?.color ?? .gray)
-                    .frame(width: 36, height: 36)
-                    .overlay(
-                        Circle()
-                            .stroke(.white, lineWidth: 2)
-                    )
-                    .shadow(color: .black.opacity(0.3), radius: 2, x: 0, y: 1)
-                
-                // Category emoji
-                if let category = annotation.savedPin.category {
-                    Text(category.symbol)
-                        .font(.system(size: 16))
-                        .fontWeight(.medium)
+            // Custom Pin with Category - CLICKABLE
+            Button(action: {
+                print("Pin button tapped: \\(annotation.savedPin.placeName)") // Debug log
+                onTap?(annotation)
+            }) {
+                ZStack {
+                    // Pin background with category color
+                    Circle()
+                        .fill(annotation.savedPin.category?.color ?? .gray)
+                        .frame(width: 36, height: 36)
+                        .overlay(
+                            Circle()
+                                .stroke(.white, lineWidth: 2)
+                        )
+                        .shadow(color: .black.opacity(0.3), radius: 2, x: 0, y: 1)
+                    
+                    // Category emoji
+                    if let category = annotation.savedPin.category {
+                        Text(category.symbol)
+                            .font(.system(size: 16))
+                            .fontWeight(.medium)
+                            .foregroundColor(.white)
+                    }
                 }
             }
+            .buttonStyle(PlainButtonStyle())
+            .zIndex(1000)
             
-            // Place name label
+            // Place name label - NOT CLICKABLE
             if showLabel {
                 Text(annotation.savedPin.placeName)
                     .font(.caption)
@@ -51,12 +59,9 @@ struct SavedPinAnnotationView: View {
                     .shadow(color: .black.opacity(0.3), radius: 1, x: 0, y: 1)
                     .lineLimit(1)
                     .animation(.easeInOut(duration: 0.2), value: showLabel)
+                    .allowsHitTesting(false) // Explicitly disable hit testing for label
             }
         }
-        .onTapGesture {
-            // Center map when tapped
-            onTap?(annotation)
-        }
-        .allowsHitTesting(true) // Ensure this view consumes tap events
+        .allowsHitTesting(true)
     }
 }

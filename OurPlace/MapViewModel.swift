@@ -31,6 +31,8 @@ class MapViewModel: ObservableObject {
     @Published var nearbyPlaces: [NearbyPlace] = []
     @Published var isLoadingNearbyPlaces = false
     @Published var savedPinAnnotations: [SavedPinAnnotation] = []
+    @Published var selectedSavedPin: SavedPinEntity?
+    @Published var showPinDetailsView = false
     
     // MARK: - Private Properties
     @Published var currentMapRegion = MKCoordinateRegion(
@@ -199,6 +201,11 @@ class MapViewModel: ObservableObject {
                 span: MKCoordinateSpan(latitudeDelta: 0.01, longitudeDelta: 0.01)
             ))
         }
+    }
+    
+    func showSavedPinDetails(_ annotation: SavedPinAnnotation) {
+        selectedSavedPin = annotation.savedPin
+        showPinDetailsView = true
     }
     
     // MARK: - Private Methods

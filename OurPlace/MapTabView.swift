@@ -50,7 +50,7 @@ struct MapTabView: View {
                             SavedPinAnnotationView(
                                 annotation: annotation,
                                 onTap: { annotation in
-                                    viewModel.centerOnSavedPin(annotation)
+                                    viewModel.showSavedPinDetails(annotation)
                                 }
                             )
                         }
@@ -60,8 +60,9 @@ struct MapTabView: View {
                 .onMapCameraChange(frequency: .continuous) { context in
                     viewModel.updateCurrentMapRegion(context.region)
                 }
-                .contentShape(Rectangle())
                 .onTapGesture { location in
+                    print("Map tapped at location: \\(location)") // Debug log
+                    
                     // Dismiss search if active
                     if searchViewModel.isSearchActive {
                         searchViewModel.searchText = ""
@@ -70,6 +71,7 @@ struct MapTabView: View {
                     
                     // Otherwise drop pin
                     if let coordinate = proxy.convert(location, from: .local) {
+                        print("Dropping pin at coordinate: \\(coordinate)") // Debug log
                         viewModel.dropPinAtCoordinate(coordinate)
                     }
                 }
@@ -113,7 +115,7 @@ struct MapTabView: View {
                                     ForEach(searchViewModel.savedPinResults) { result in
                                         Button(action: {
                                             let annotation = SavedPinAnnotation(savedPin: result.savedPin)
-                                            viewModel.centerOnSavedPin(annotation)
+                                            viewModel.showSavedPinDetails(annotation)
                                             searchViewModel.searchText = ""
                                         }) {
                                             HStack(spacing: 12) {
@@ -283,6 +285,11 @@ struct MapTabView: View {
                     onSaveSuccess: viewModel.onPinSavedSuccessfully,
                     onCancel: viewModel.onSavePinCancelled
                 )
+            }
+        }
+        .fullScreenCover(isPresented: $viewModel.showPinDetailsView) {
+            if let savedPin = viewModel.selectedSavedPin {
+                PinDetailsView(savedPin: savedPin)
             }
         }
         .onAppear {

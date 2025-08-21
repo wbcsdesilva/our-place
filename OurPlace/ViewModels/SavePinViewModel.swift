@@ -122,7 +122,10 @@ class SavePinViewModel: ObservableObject {
             
             if let imageData = image.jpegData(compressionQuality: 0.8) {
                 try imageData.write(to: fileURL)
-                savedPaths.append(fileURL.relativePath)
+                // Store relative path from Documents directory for portability
+                let documentsPath = fileManager.urls(for: .documentDirectory, in: .userDomainMask).first!
+                let relativePath = fileURL.path.replacingOccurrences(of: documentsPath.path + "/", with: "")
+                savedPaths.append(relativePath)
             }
         }
         
@@ -157,7 +160,10 @@ class SavePinViewModel: ObservableObject {
             }
             
             try fileManager.copyItem(at: attachment.url, to: destinationURL)
-            savedPaths.append(destinationURL.relativePath)
+            // Store relative path from Documents directory for portability
+            let documentsPath = fileManager.urls(for: .documentDirectory, in: .userDomainMask).first!
+            let relativePath = destinationURL.path.replacingOccurrences(of: documentsPath.path + "/", with: "")
+            savedPaths.append(relativePath)
         }
         
         return savedPaths

@@ -12,6 +12,8 @@ class SavesTabViewModel: ObservableObject {
     @Published var savedPins: [SavedPinEntity] = []
     @Published var searchText = ""
     @Published var selectedSegment = 0 // 0 = Pins, 1 = Routes
+    @Published var selectedPin: SavedPinEntity?
+    @Published var showPinDetails = false
     
     private let coreDataManager = CoreDataManager.shared
     
@@ -38,6 +40,11 @@ class SavesTabViewModel: ObservableObject {
     
     func refreshPins() {
         loadSavedPins()
+    }
+    
+    func showPinDetails(_ pin: SavedPinEntity) {
+        selectedPin = pin
+        showPinDetails = true
     }
     
     // Format date for display

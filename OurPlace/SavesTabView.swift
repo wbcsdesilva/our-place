@@ -42,6 +42,11 @@ struct SavesTabView: View {
             .onAppear {
                 viewModel.refreshPins()
             }
+            .fullScreenCover(isPresented: $viewModel.showPinDetails) {
+                if let selectedPin = viewModel.selectedPin {
+                    PinDetailsView(savedPin: selectedPin)
+                }
+            }
         }
     }
 }
@@ -56,8 +61,13 @@ struct PinsListView: View {
         ScrollView {
             LazyVStack(spacing: 12) {
                 ForEach(pins, id: \.id) { pin in
-                    PinRowView(pin: pin, viewModel: viewModel)
-                        .padding(.horizontal, 20)
+                    Button(action: {
+                        viewModel.showPinDetails(pin)
+                    }) {
+                        PinRowView(pin: pin, viewModel: viewModel)
+                    }
+                    .buttonStyle(PlainButtonStyle())
+                    .padding(.horizontal, 20)
                 }
             }
             .padding(.vertical, 8)
