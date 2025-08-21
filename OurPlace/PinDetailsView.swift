@@ -17,31 +17,30 @@ struct PinDetailsView: View {
     @State private var quickLookURLs: [URL] = []
     @State private var quickLookStartIndex = 0
     
+    var onStartNavigation: ((SavedPinEntity) -> Void)?
+    
     var body: some View {
         NavigationView {
-            ScrollView {
+            ZStack {
+                ScrollView {
                 VStack(spacing: 24) {
-                    // Map Preview
                     PinDetailsMapPreview(savedPin: savedPin)
                         .frame(height: 200)
                         .cornerRadius(16)
                         .padding(.top, 16)
                     
                     VStack(spacing: 16) {
-                        // Place Name Display (no label)
                         Text(savedPin.placeName)
                             .font(.title2)
                             .fontWeight(.bold)
                             .foregroundColor(.primary)
                             .frame(maxWidth: .infinity, alignment: .leading)
                         
-                        // Address Display (no label)
                         Text(savedPin.address)
                             .font(.body)
                             .foregroundColor(.secondary)
                             .frame(maxWidth: .infinity, alignment: .leading)
                         
-                        // Category Display (no label)
                         if let category = savedPin.category {
                             HStack {
                                 Circle()
@@ -62,22 +61,16 @@ struct PinDetailsView: View {
                             .frame(maxWidth: .infinity, alignment: .leading)
                         }
                         
-                        // Coordinates Display (same as save pin screen)
                         CoordinatesDisplay(coordinate: savedPin.coordinate)
                     }
                     
-                    // View in Maps Buttons
-                    ViewInMapsButtons(coordinate: savedPin.coordinate)
                     
-                    // Events Section
                     EventsSection()
                     
-                                    // Notes Section
                     if let notes = savedPin.notes, !notes.isEmpty {
                         NotesDisplaySection(notes: notes)
                     }
                     
-                    // Photos Section
                     if !savedPin.photoFilePathsArray.isEmpty {
                         PhotosDisplaySection(
                             photoFilePaths: savedPin.photoFilePathsArray,
@@ -87,7 +80,6 @@ struct PinDetailsView: View {
                         )
                     }
                     
-                    // Attachments Section
                     if !savedPin.attachmentFilePathsArray.isEmpty {
                         AttachmentsDisplaySection(
                             attachmentFilePaths: savedPin.attachmentFilePathsArray,
@@ -100,7 +92,30 @@ struct PinDetailsView: View {
                 .padding(.horizontal, 16)
                 .padding(.bottom, 32)
             }
-            .navigationTitle("Pin Details")
+            
+            VStack {
+                Spacer()
+                HStack {
+                    Spacer()
+                    
+                    Button(action: {
+                        onStartNavigation?(savedPin)
+                        dismiss()
+                    }) {
+                        Image(systemName: "arrow.trianglehead.turn.up.right.diamond.fill")
+                            .font(.system(size: 20, weight: .medium))
+                            .foregroundColor(.white)
+                            .frame(width: 56, height: 56)
+                            .background(Color.blue)
+                            .clipShape(Circle())
+                            .shadow(color: .black.opacity(0.3), radius: 8, x: 0, y: 4)
+                    }
+                    .padding(.trailing, 20)
+                    .padding(.bottom, 40)
+                }
+            }
+        }
+        .navigationTitle("Pin Details")
             .navigationBarTitleDisplayMode(.inline)
             .navigationBarBackButtonHidden(true)
             .toolbar {
@@ -123,7 +138,6 @@ struct PinDetailsView: View {
         }
     }
     
-    // MARK: - Quick Look Helper Methods
     
     private func openPhotosInQuickLook(startingAt index: Int) {
         let photoURLs = savedPin.photoFilePathsArray.compactMap { path in
@@ -151,7 +165,6 @@ struct PinDetailsView: View {
     
 }
 
-// MARK: - Map Preview Component
 
 struct PinDetailsMapPreview: View {
     let savedPin: SavedPinEntity
@@ -190,61 +203,8 @@ struct PinDetailsMapPreview: View {
     }
 }
 
-// MARK: - Note: CoordinatesDisplay and CoordinateItem are shared from SavePinView.swift
 
-// MARK: - View in Maps Buttons
 
-struct ViewInMapsButtons: View {
-    let coordinate: CLLocationCoordinate2D
-    
-    var body: some View {
-        HStack(spacing: 16) {
-            Button(action: {
-                openInAppleMaps()
-            }) {
-                Text("View in Apple Maps")
-                    .font(.body)
-                    .foregroundColor(.white)
-                    .frame(maxWidth: .infinity)
-                    .padding()
-                    .background(Color.blue)
-                    .cornerRadius(12)
-            }
-            
-            Button(action: {
-                openInGoogleMaps()
-            }) {
-                Text("View in Google Maps")
-                    .font(.body)
-                    .foregroundColor(.white)
-                    .frame(maxWidth: .infinity)
-                    .padding()
-                    .background(Color.blue)
-                    .cornerRadius(12)
-            }
-        }
-    }
-    
-    private func openInAppleMaps() {
-        let placemark = MKPlacemark(coordinate: coordinate)
-        let mapItem = MKMapItem(placemark: placemark)
-        mapItem.name = "Selected Location"
-        mapItem.openInMaps(launchOptions: [MKLaunchOptionsDirectionsModeKey: MKLaunchOptionsDirectionsModeDriving])
-    }
-    
-    private func openInGoogleMaps() {
-        let url = URL(string: "comgooglemaps://?q=\(coordinate.latitude),\(coordinate.longitude)")!
-        if UIApplication.shared.canOpenURL(url) {
-            UIApplication.shared.open(url)
-        } else {
-            // Fallback to web version
-            let webUrl = URL(string: "https://maps.google.com/?q=\(coordinate.latitude),\(coordinate.longitude)")!
-            UIApplication.shared.open(webUrl)
-        }
-    }
-}
-
-// MARK: - Events Section
 
 struct EventsSection: View {
     var body: some View {
@@ -299,7 +259,6 @@ struct EventRow: View {
     }
 }
 
-// MARK: - Notes Display Section
 
 struct NotesDisplaySection: View {
     let notes: String
@@ -321,7 +280,6 @@ struct NotesDisplaySection: View {
     }
 }
 
-// MARK: - Photos Display Section
 
 struct PhotosDisplaySection: View {
     let photoFilePaths: [String]
@@ -333,9 +291,6 @@ struct PhotosDisplaySection: View {
                 .font(.headline)
                 .foregroundColor(.primary)
             
-            // Debug: Print photo paths to console
-            let _ = print("Photo paths: \(photoFilePaths)")
-            
             VStack {
                 LazyVGrid(columns: [
                     GridItem(.flexible()),
@@ -346,7 +301,6 @@ struct PhotosDisplaySection: View {
                         Button(action: {
                             onPhotoTap(index)
                         }) {
-                            // Try different path approaches
                             Group {
                                 if let uiImage = loadImageFromPath(path) {
                                     Image(uiImage: uiImage)
@@ -397,7 +351,6 @@ struct PhotosDisplaySection: View {
     }
 }
 
-// MARK: - Attachments Display Section
 
 struct AttachmentsDisplaySection: View {
     let attachmentFilePaths: [String]
@@ -459,7 +412,6 @@ struct AttachmentDisplayRow: View {
                 
                 Spacer()
                 
-                // Optional: Add a subtle indicator that it's tappable
                 Image(systemName: "chevron.right")
                     .foregroundColor(.secondary)
                     .font(.system(size: 12))
@@ -473,7 +425,6 @@ struct AttachmentDisplayRow: View {
     }
 }
 
-// MARK: - Helper Functions
 
 private func determineAttachmentType(from url: URL) -> AttachmentType {
     let pathExtension = url.pathExtension.lowercased()
@@ -501,7 +452,6 @@ private func determineAttachmentType(from url: URL) -> AttachmentType {
     }
 }
 
-// MARK: - Quick Look View
 
 struct QuickLookView: UIViewControllerRepresentable {
     let urls: [URL]
@@ -516,7 +466,6 @@ struct QuickLookView: UIViewControllerRepresentable {
     }
     
     func updateUIViewController(_ uiViewController: QLPreviewController, context: Context) {
-        // Update if needed
     }
     
     func makeCoordinator() -> Coordinator {
@@ -540,7 +489,6 @@ struct QuickLookView: UIViewControllerRepresentable {
     }
 }
 
-// MARK: - Helper Functions
 
 private func resolveFilePath(_ path: String) -> URL? {
     let fileManager = FileManager.default

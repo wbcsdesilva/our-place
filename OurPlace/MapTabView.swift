@@ -12,6 +12,7 @@ import CoreLocation
 struct MapTabView: View {
     @StateObject private var viewModel = MapViewModel()
     @StateObject private var searchViewModel = MapSearchViewModel()
+    @StateObject private var navigationViewModel = NavigationViewModel()
     
     var body: some View {
         NavigationView {
@@ -55,23 +56,24 @@ struct MapTabView: View {
                             )
                         }
                     }
+                    
+                    // Navigation Route
+                    if let route = navigationViewModel.currentRoute {
+                        MapPolyline(route.polyline)
+                            .stroke(.blue, lineWidth: 5)
+                    }
                 }
                 .mapControlVisibility(.hidden)
                 .onMapCameraChange(frequency: .continuous) { context in
                     viewModel.updateCurrentMapRegion(context.region)
                 }
                 .onTapGesture { location in
-                    print("Map tapped at location: \\(location)") // Debug log
-                    
-                    // Dismiss search if active
                     if searchViewModel.isSearchActive {
                         searchViewModel.searchText = ""
                         return
                     }
                     
-                    // Otherwise drop pin
                     if let coordinate = proxy.convert(location, from: .local) {
-                        print("Dropping pin at coordinate: \\(coordinate)") // Debug log
                         viewModel.dropPinAtCoordinate(coordinate)
                     }
                 }
@@ -95,16 +97,23 @@ struct MapTabView: View {
                             .shadow(radius: 4)
                     }
                     .padding(.trailing, 16)
-                    .padding(.bottom, 16)
+                    .padding(.bottom, navigationViewModel.isNavigating ? 24 : 16)
+                }
+                
+                if navigationViewModel.isNavigating {
+                    NavigationInfoPanel(
+                        navigationViewModel: navigationViewModel,
+                        userLocation: viewModel.userLocation
+                    )
+                    .padding(.horizontal, 16)
+                    .padding(.bottom, 24) // Slightly above legal label
                 }
             }
             
-            // Search Results Overlay
             if searchViewModel.isSearchActive {
                 VStack {
                     ScrollView {
                         LazyVStack(spacing: 16) {
-                            // Your Pins Section
                             if !searchViewModel.savedPinResults.isEmpty {
                                 VStack(alignment: .leading, spacing: 10) {
                                     Text("Your pins")
@@ -119,7 +128,6 @@ struct MapTabView: View {
                                             searchViewModel.searchText = ""
                                         }) {
                                             HStack(spacing: 12) {
-                                                // Category color circle with emoji
                                                 if let category = result.savedPin.category {
                                                     Circle()
                                                         .fill(category.color)
@@ -169,7 +177,6 @@ struct MapTabView: View {
                                 }
                             }
                             
-                            // Places Section
                             if searchViewModel.isLoadingPOIs {
                                 HStack {
                                     ProgressView()
@@ -186,7 +193,6 @@ struct MapTabView: View {
                                     
                                     ForEach(searchViewModel.poiResults) { result in
                                         HStack(spacing: 12) {
-                                            // POI icon with distance below
                                             VStack(spacing: 4) {
                                                 Circle()
                                                     .fill(Color.orange.opacity(0.2))
@@ -289,7 +295,14 @@ struct MapTabView: View {
         }
         .fullScreenCover(isPresented: $viewModel.showPinDetailsView) {
             if let savedPin = viewModel.selectedSavedPin {
-                PinDetailsView(savedPin: savedPin)
+                PinDetailsView(
+                    savedPin: savedPin,
+                    onStartNavigation: { pin in
+                        if let userLocation = viewModel.userLocation {
+                            navigationViewModel.startNavigation(to: pin, from: userLocation)
+                        }
+                    }
+                )
             }
         }
         .onAppear {
@@ -308,7 +321,6 @@ struct MapTabView: View {
 }
 
 
-// MARK: - Pin Details Sheet
 
 struct PinDetailsSheet: View {
     let pin: DroppedPin?
@@ -340,7 +352,6 @@ struct PinDetailsSheet: View {
     }
 }
 
-// MARK: - Pin Details Components
 
 struct PinDetailsHeader: View {
     let pin: DroppedPin?
@@ -467,6 +478,107 @@ struct NearbyPlaceRow: View {
         .background(Color(.systemGray6))
         .cornerRadius(12)
         .shadow(color: Color.black.opacity(0.05), radius: 2, x: 0, y: 1)
+    }
+}
+
+
+struct NavigationInfoPanel: View {
+    @ObservedObject var navigationViewModel: NavigationViewModel
+    var userLocation: CLLocationCoordinate2D?
+    
+    var body: some View {
+        VStack(spacing: 12) {
+            HStack {
+                // Transport mode and destination info
+                VStack(alignment: .leading, spacing: 4) {
+                    if let destinationPin = navigationViewModel.destinationPin {
+                        HStack(spacing: 0) {
+                            Text("To ")
+                                .font(.headline)
+                                .foregroundColor(.primary)
+                            Text(destinationPin.placeName)
+                                .font(.headline)
+                                .fontWeight(.bold)
+                                .foregroundColor(.primary)
+                        }
+                        .lineLimit(1)
+                    }
+                    
+                    HStack(spacing: 4) {
+                        Text(navigationViewModel.formattedDistance)
+                            .font(.subheadline)
+                            .fontWeight(.medium)
+                        
+                        Text("•")
+                            .font(.subheadline)
+                            .foregroundColor(.secondary)
+                        
+                        Text(navigationViewModel.formattedETA)
+                            .font(.subheadline)
+                            .fontWeight(.medium)
+                    }
+                }
+                
+                Spacer()
+                
+                // Cancel button
+                Button(action: {
+                    navigationViewModel.cancelNavigation()
+                }) {
+                    Image(systemName: "xmark.circle.fill")
+                        .foregroundColor(.secondary)
+                        .font(.system(size: 24))
+                }
+            }
+            
+            // Transport mode selection
+            HStack(spacing: 12) {
+                TransportModeButton(
+                    icon: "car.fill",
+                    type: .automobile,
+                    isSelected: navigationViewModel.transportType == .automobile,
+                    navigationViewModel: navigationViewModel,
+                    userLocation: userLocation
+                )
+                
+                TransportModeButton(
+                    icon: "figure.walk",
+                    type: .walking,
+                    isSelected: navigationViewModel.transportType == .walking,
+                    navigationViewModel: navigationViewModel,
+                    userLocation: userLocation
+                )
+                
+                Spacer()
+            }
+        }
+        .padding(16)
+        .background(.regularMaterial)
+        .cornerRadius(16)
+        .shadow(color: .black.opacity(0.1), radius: 8, x: 0, y: 4)
+    }
+}
+
+struct TransportModeButton: View {
+    let icon: String
+    let type: MKDirectionsTransportType
+    let isSelected: Bool
+    @ObservedObject var navigationViewModel: NavigationViewModel
+    var userLocation: CLLocationCoordinate2D?
+    
+    var body: some View {
+        Button(action: {
+            if let userLocation = userLocation {
+                navigationViewModel.changeTransportType(type, userLocation: userLocation)
+            }
+        }) {
+            Image(systemName: icon)
+                .font(.system(size: 16, weight: .medium))
+                .foregroundColor(isSelected ? .white : .blue)
+                .frame(width: 44, height: 44)
+                .background(isSelected ? Color.blue : Color.blue.opacity(0.1))
+                .clipShape(Circle())
+        }
     }
 }
 
