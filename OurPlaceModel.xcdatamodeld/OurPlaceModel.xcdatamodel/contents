@@ -11,6 +11,17 @@
         <attribute name="symbol" attributeType="String"/>
         <relationship name="savedPins" optional="YES" toMany="YES" deletionRule="Nullify" destinationEntity="SavedPinEntity" inverseName="category" inverseEntity="SavedPinEntity"/>
     </entity>
+    <entity name="EventEntity" representedClassName="EventEntity" syncable="YES">
+        <attribute name="createdAt" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="eventDate" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="eventKitEventID" optional="YES" attributeType="String"/>
+        <attribute name="id" attributeType="UUID" usesScalarValueType="NO"/>
+        <attribute name="isReminderScheduled" attributeType="Boolean" defaultValueString="NO" usesScalarValueType="YES"/>
+        <attribute name="name" attributeType="String"/>
+        <attribute name="reminderMinutes" attributeType="Integer 16" defaultValueString="0" usesScalarValueType="YES"/>
+        <attribute name="updatedAt" attributeType="Date" usesScalarValueType="NO"/>
+        <relationship name="savedPin" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="SavedPinEntity" inverseName="events" inverseEntity="SavedPinEntity"/>
+    </entity>
     <entity name="SavedPinEntity" representedClassName="SavedPinEntity" syncable="YES">
         <attribute name="address" attributeType="String"/>
         <attribute name="attachmentFilePaths" optional="YES" attributeType="String"/>
@@ -23,5 +34,6 @@
         <attribute name="placeName" attributeType="String"/>
         <attribute name="updatedAt" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
         <relationship name="category" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="CategoryEntity" inverseName="savedPins" inverseEntity="CategoryEntity"/>
+        <relationship name="events" optional="YES" toMany="YES" deletionRule="Nullify" destinationEntity="EventEntity" inverseName="savedPin" inverseEntity="EventEntity"/>
     </entity>
 </model>

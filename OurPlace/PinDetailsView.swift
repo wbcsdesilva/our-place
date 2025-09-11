@@ -65,7 +65,7 @@ struct PinDetailsView: View {
                     }
                     
                     
-                    EventsSection()
+                    EventsSection(savedPin: savedPin)
                     
                     if let notes = savedPin.notes, !notes.isEmpty {
                         NotesDisplaySection(notes: notes)
@@ -207,26 +207,44 @@ struct PinDetailsMapPreview: View {
 
 
 struct EventsSection: View {
+    let savedPin: SavedPinEntity
+    @State private var events: [EventEntity] = []
+    
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text("Events")
                 .font(.headline)
                 .foregroundColor(.primary)
             
-            VStack(spacing: 8) {
-                EventRow(
-                    title: "Plumra's Birthday",
-                    date: "05.07.2025 • 04:30PM",
-                    daysUntil: "in 7 days"
-                )
-                
-                EventRow(
-                    title: "Kawshal's Graduation", 
-                    date: "05.07.2025 • 04:30PM",
-                    daysUntil: "in 8 days"
-                )
+            if events.isEmpty {
+                Text("No events scheduled at this location")
+                    .font(.body)
+                    .foregroundColor(.secondary)
+                    .padding()
+                    .frame(maxWidth: .infinity)
+                    .background(Color(.systemGray6))
+                    .cornerRadius(12)
+            } else {
+                TimelineView(.periodic(from: .now, by: 30.0)) { context in
+                    VStack(spacing: 8) {
+                        ForEach(events, id: \.id) { event in
+                            EventRow(
+                                title: event.name ?? "Unknown Event",
+                                date: event.formattedDateTime,
+                                daysUntil: event.timeUntilEvent
+                            )
+                        }
+                    }
+                }
             }
         }
+        .onAppear {
+            loadEvents()
+        }
+    }
+    
+    private func loadEvents() {
+        events = EventEntity.fetchEventsForSavedPin(savedPin, context: savedPin.managedObjectContext!)
     }
 }
 

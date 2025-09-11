@@ -25,5 +25,9 @@
 	<string>OurPlace needs access to your location to show you on the map and help you find nearby places</string>
 	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
 	<string>OurPlace needs access to your location to show you on the map and help you find nearby places</string>
+	<key>NSCalendarsUsageDescription</key>
+	<string>OurPlace needs access to your calendar to save events and sync them with your system calendar</string>
+	<key>NSRemindersUsageDescription</key>
+	<string>OurPlace needs access to reminders to send you notifications about upcoming events</string>
 </dict>
 </plist>
