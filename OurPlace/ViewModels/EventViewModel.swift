@@ -8,9 +8,11 @@
 import Foundation
 import CoreData
 import EventKit
+import UserNotifications
+import UIKit
 
 @MainActor
-class EventViewModel: ObservableObject {
+class EventViewModel: NSObject, ObservableObject, UNUserNotificationCenterDelegate {
     @Published var events: [EventEntity] = []
     @Published var upcomingEvents: [EventEntity] = []
     @Published var isLoading = false
@@ -18,14 +20,19 @@ class EventViewModel: ObservableObject {
     
     private let coreDataManager = CoreDataManager.shared
     private let eventStore = EKEventStore()
+    private let notificationCenter = UNUserNotificationCenter.current()
     
-    init() {
+    override init() {
+        super.init()
+        notificationCenter.delegate = self
         loadEvents()
         requestPermissions()
+        clearBadgeCount()
     }
     
     private func requestPermissions() {
         requestCalendarPermission()
+        requestNotificationPermission()
     }
     
     private func requestCalendarPermission() {
@@ -48,6 +55,17 @@ class EventViewModel: ObservableObject {
         }
     }
     
+    private func requestNotificationPermission() {
+        notificationCenter.requestAuthorization(options: [.alert, .sound, .badge]) { [weak self] granted, error in
+            DispatchQueue.main.async {
+                if let error = error {
+                    self?.errorMessage = "Notification permission error: \(error.localizedDescription)"
+                } else if !granted {
+                    self?.errorMessage = "Notification permission denied. Enable in Settings to receive event reminders."
+                }
+            }
+        }
+    }
     
     func loadEvents() {
         isLoading = true
@@ -98,6 +116,9 @@ class EventViewModel: ObservableObject {
             
             newEvent.eventKitEventID = calendarEventID
             
+            try await scheduleLocalNotification(for: newEvent)
+            newEvent.isReminderScheduled = true
+            
             try coreDataManager.context.save()
             
             await MainActor.run {
@@ -118,7 +139,7 @@ class EventViewModel: ObservableObject {
             let event = EKEvent(eventStore: eventStore)
             event.title = title
             event.startDate = date
-            event.endDate = date.addingTimeInterval(3600) // 1 hour duration
+            event.endDate = date.addingTimeInterval(3600)
             event.location = location
             event.notes = notes
             event.calendar = eventStore.defaultCalendarForNewEvents
@@ -132,10 +153,46 @@ class EventViewModel: ObservableObject {
         }
     }
     
+    // Schedule local notification for event reminder
+    private func scheduleLocalNotification(for event: EventEntity) async throws {
+        guard let eventDate = event.eventDate,
+              let eventName = event.name,
+              let eventId = event.id else {
+            throw NSError(domain: "EventViewModel", code: 1, userInfo: [NSLocalizedDescriptionKey: "Missing event data"])
+        }
+        
+        let triggerDate = eventDate.addingTimeInterval(-Double(event.reminderMinutes * 60))
+        
+        // Don't schedule notifications for past trigger times
+        if triggerDate <= Date() {
+            return
+        }
+        
+        let content = UNMutableNotificationContent()
+        content.title = "Event Reminder"
+        content.body = "\(eventName) at \(event.savedPin?.placeName ?? "Unknown location") starts in \(event.reminderMinutes) minutes"
+        content.sound = .default
+        content.badge = 1
+        content.categoryIdentifier = "EVENT_REMINDER"
+        
+        let triggerDateComponents = Calendar.current.dateComponents(
+            [.year, .month, .day, .hour, .minute], 
+            from: triggerDate
+        )
+        
+        let trigger = UNCalendarNotificationTrigger(dateMatching: triggerDateComponents, repeats: false)
+        let request = UNNotificationRequest(identifier: eventId.uuidString, content: content, trigger: trigger)
+        
+        try await notificationCenter.add(request)
+    }
     
     func deleteEvent(_ event: EventEntity) async {
         if let eventKitID = event.eventKitEventID {
             await deleteCalendarEvent(eventKitID: eventKitID)
+        }
+        
+        if let eventId = event.id {
+            notificationCenter.removePendingNotificationRequests(withIdentifiers: [eventId.uuidString])
         }
         
         event.delete(context: coreDataManager.context)
@@ -157,6 +214,37 @@ class EventViewModel: ObservableObject {
     
     func refreshEvents() {
         loadEvents()
+    }
+    
+    
+    // MARK: - UNUserNotificationCenterDelegate
+    
+    // Show notifications even when app is in foreground
+    nonisolated func userNotificationCenter(_ center: UNUserNotificationCenter, willPresent notification: UNNotification, withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void) {
+        if #available(iOS 14.0, *) {
+            completionHandler([.banner, .sound, .badge])
+        } else {
+            completionHandler([.alert, .sound, .badge])
+        }
+    }
+    
+    // Handle notification taps
+    nonisolated func userNotificationCenter(_ center: UNUserNotificationCenter, didReceive response: UNNotificationResponse, withCompletionHandler completionHandler: @escaping () -> Void) {
+        Task { @MainActor in
+            clearBadgeCount()
+        }
+        completionHandler()
+    }
+    
+    // Clear app badge count
+    func clearBadgeCount() {
+        if #available(iOS 16.0, *) {
+            Task {
+                try? await UNUserNotificationCenter.current().setBadgeCount(0)
+            }
+        } else {
+            UIApplication.shared.applicationIconBadgeNumber = 0
+        }
     }
     
 }

@@ -225,7 +225,7 @@ struct EventsSection: View {
                     .background(Color(.systemGray6))
                     .cornerRadius(12)
             } else {
-                TimelineView(.periodic(from: .now, by: 30.0)) { context in
+                TimelineView(.periodic(from: .now, by: 5.0)) { context in
                     VStack(spacing: 8) {
                         ForEach(events, id: \.id) { event in
                             EventRow(

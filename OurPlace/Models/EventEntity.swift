@@ -40,7 +40,9 @@ public class EventEntity: NSManagedObject {
     }
     
     var timeUntilEvent: String {
-        guard let eventDate = eventDate else { return "Unknown time" }
+        guard let eventDate = eventDate else { 
+            return "Unknown time" 
+        }
         
         let now = Date()
         let timeInterval = eventDate.timeIntervalSince(now)

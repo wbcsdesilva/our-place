@@ -242,10 +242,10 @@ struct UpcomingEventsSection: View {
                     .frame(maxWidth: .infinity, alignment: .center)
                     .padding(.vertical, 32)
             } else {
-                TimelineView(.periodic(from: .now, by: 30.0)) { context in
+                TimelineView(.periodic(from: .now, by: 5.0)) { context in
                     LazyVStack(spacing: 12) {
                         ForEach(events, id: \.id) { event in
-                            EventRowView(event: event)
+                            EventRowView(event: event, currentTime: context.date)
                         }
                     }
                 }
@@ -258,6 +258,7 @@ struct UpcomingEventsSection: View {
 
 struct EventRowView: View {
     let event: EventEntity
+    let currentTime: Date
     
     var body: some View {
         HStack(spacing: 12) {
@@ -298,7 +299,7 @@ struct EventRowView: View {
                     
                     Spacer()
                     
-                    Text(event.timeUntilEvent)
+                    Text(timeUntilEvent(for: event, from: currentTime))
                         .font(.caption)
                         .fontWeight(.medium)
                         .foregroundColor(.blue)
@@ -310,6 +311,30 @@ struct EventRowView: View {
         .padding(16)
         .background(Color(.systemGray6))
         .cornerRadius(12)
+    }
+    
+    private func timeUntilEvent(for event: EventEntity, from currentTime: Date) -> String {
+        guard let eventDate = event.eventDate else { 
+            return "Unknown time" 
+        }
+        
+        let timeInterval = eventDate.timeIntervalSince(currentTime)
+        
+        if timeInterval <= 0 {
+            return "Past event"
+        }
+        
+        let days = Int(timeInterval / (24 * 60 * 60))
+        let hours = Int((timeInterval.truncatingRemainder(dividingBy: 24 * 60 * 60)) / (60 * 60))
+        
+        if days > 0 {
+            return "in \(days) day\(days == 1 ? "" : "s")"
+        } else if hours > 0 {
+            return "in \(hours) hour\(hours == 1 ? "" : "s")"
+        } else {
+            let minutes = Int((timeInterval.truncatingRemainder(dividingBy: 60 * 60)) / 60)
+            return "in \(minutes) minute\(minutes == 1 ? "" : "s")"
+        }
     }
 }
 
