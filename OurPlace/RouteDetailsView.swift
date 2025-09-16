@@ -14,6 +14,7 @@ struct RouteDetailsView: View {
     @Environment(\.dismiss) private var dismiss
     @StateObject private var viewModel: RouteDetailsViewModel
     @State private var showEditView = false
+    @State private var showNavigationView = false
 
     init(route: RouteEntity) {
         self.route = route
@@ -62,9 +63,29 @@ struct RouteDetailsView: View {
                         // Stops List
                         StopsListSection(stops: viewModel.currentStops)
 
-                        Spacer(minLength: 20)
+                        Spacer(minLength: 100) // Extra space for directions button
                     }
                 }
+
+                // Directions Button
+                Button(action: {
+                    showNavigationView = true
+                }) {
+                    HStack {
+                        Image(systemName: "location.fill")
+                            .font(.system(size: 16))
+                        Text("Start Navigation")
+                            .font(.headline)
+                            .fontWeight(.semibold)
+                    }
+                    .foregroundColor(.white)
+                    .frame(maxWidth: .infinity)
+                    .padding()
+                    .background(Color.blue)
+                    .cornerRadius(12)
+                }
+                .padding(.horizontal, 16)
+                .padding(.bottom, 16)
             }
             .navigationTitle("")
             .navigationBarTitleDisplayMode(.inline)
@@ -92,6 +113,9 @@ struct RouteDetailsView: View {
         }
         .fullScreenCover(isPresented: $showEditView) {
             RouteEditView(route: route)
+        }
+        .fullScreenCover(isPresented: $showNavigationView) {
+            RouteNavigationView(route: route)
         }
         .onChange(of: showEditView) { _, isPresented in
             if !isPresented {
