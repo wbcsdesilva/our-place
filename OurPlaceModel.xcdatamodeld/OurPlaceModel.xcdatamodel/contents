@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<model type="com.apple.IDECoreDataModeler.DataModel" documentVersion="1.0" lastSavedToolsVersion="23605" systemVersion="24G84" minimumToolsVersion="Automatic" sourceLanguage="Swift" usedWithSwiftData="YES" userDefinedModelVersionIdentifier="">
+<model type="com.apple.IDECoreDataModeler.DataModel" documentVersion="1.0" lastSavedToolsVersion="23605" systemVersion="24G90" minimumToolsVersion="Automatic" sourceLanguage="Swift" usedWithSwiftData="YES" userDefinedModelVersionIdentifier="">
     <entity name="CategoryEntity" representedClassName="CategoryEntity" syncable="YES">
         <attribute name="alpha" attributeType="Double" defaultValueString="0.0" usesScalarValueType="YES"/>
         <attribute name="blue" attributeType="Double" defaultValueString="0.0" usesScalarValueType="YES"/>
@@ -22,6 +22,20 @@
         <attribute name="updatedAt" attributeType="Date" usesScalarValueType="NO"/>
         <relationship name="savedPin" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="SavedPinEntity" inverseName="events" inverseEntity="SavedPinEntity"/>
     </entity>
+    <entity name="RouteEntity" representedClassName="RouteEntity" syncable="YES">
+        <attribute name="createdAt" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="id" attributeType="UUID" usesScalarValueType="NO"/>
+        <attribute name="name" attributeType="String"/>
+        <attribute name="totalDistance" optional="YES" attributeType="Double" defaultValueString="0.0" usesScalarValueType="YES"/>
+        <attribute name="updatedAt" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
+        <relationship name="stops" optional="YES" toMany="YES" deletionRule="Nullify" destinationEntity="RouteStopEntity" inverseName="route" inverseEntity="RouteStopEntity"/>
+    </entity>
+    <entity name="RouteStopEntity" representedClassName="RouteStopEntity" syncable="YES">
+        <attribute name="id" attributeType="UUID" usesScalarValueType="NO"/>
+        <attribute name="order" attributeType="Integer 16" defaultValueString="0" usesScalarValueType="YES"/>
+        <relationship name="route" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="RouteEntity" inverseName="stops" inverseEntity="RouteEntity"/>
+        <relationship name="savedPin" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="SavedPinEntity" inverseName="routeStops" inverseEntity="SavedPinEntity"/>
+    </entity>
     <entity name="SavedPinEntity" representedClassName="SavedPinEntity" syncable="YES">
         <attribute name="address" attributeType="String"/>
         <attribute name="attachmentFilePaths" optional="YES" attributeType="String"/>
@@ -35,5 +49,6 @@
         <attribute name="updatedAt" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
         <relationship name="category" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="CategoryEntity" inverseName="savedPins" inverseEntity="CategoryEntity"/>
         <relationship name="events" optional="YES" toMany="YES" deletionRule="Nullify" destinationEntity="EventEntity" inverseName="savedPin" inverseEntity="EventEntity"/>
+        <relationship name="routeStops" optional="YES" toMany="YES" deletionRule="Nullify" destinationEntity="RouteStopEntity" inverseName="savedPin" inverseEntity="RouteStopEntity"/>
     </entity>
 </model>

@@ -10,10 +10,14 @@ import CoreData
 
 class SavesTabViewModel: ObservableObject {
     @Published var savedPins: [SavedPinEntity] = []
+    @Published var savedRoutes: [RouteEntity] = []
     @Published var searchText = ""
     @Published var selectedSegment = 0 // 0 = Pins, 1 = Routes
     @Published var selectedPin: SavedPinEntity?
     @Published var showPinDetails = false
+    @Published var showCreateRoute = false
+    @Published var selectedRoute: RouteEntity?
+    @Published var showRouteDetails = false
     
     private let coreDataManager = CoreDataManager.shared
     
@@ -38,6 +42,10 @@ class SavesTabViewModel: ObservableObject {
         savedPins = SavedPinEntity.fetchAllSavedPins(context: coreDataManager.context)
     }
     
+    func loadSavedRoutes() {
+        savedRoutes = RouteEntity.fetchAllRoutes(context: coreDataManager.context)
+    }
+    
     func refreshPins() {
         loadSavedPins()
     }
@@ -45,6 +53,11 @@ class SavesTabViewModel: ObservableObject {
     func showPinDetails(_ pin: SavedPinEntity) {
         selectedPin = pin
         showPinDetails = true
+    }
+
+    func showRouteDetails(_ route: RouteEntity) {
+        selectedRoute = route
+        showRouteDetails = true
     }
     
     // Format date for display

@@ -32,22 +32,113 @@ struct SavesTabView: View {
                         PinsListView(pins: viewModel.filteredPins, viewModel: viewModel)
                     }
                 } else {
-                    // Routes List (placeholder for now)
-                    EmptyRoutesView()
+                    // Routes List
+                    if viewModel.savedRoutes.isEmpty {
+                        EmptyRoutesView()
+                    } else {
+                        RoutesListView(routes: viewModel.savedRoutes, viewModel: viewModel)
+                    }
                 }
             }
             .navigationTitle("Your Saves")
             .navigationBarTitleDisplayMode(.large)
             .searchable(text: $viewModel.searchText, prompt: "Search")
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button(action: {
+                        if viewModel.selectedSegment == 0 {
+                            // TODO: Add pin functionality
+                        } else {
+                            viewModel.showCreateRoute = true
+                        }
+                    }) {
+                        Image(systemName: "plus")
+                            .foregroundColor(.blue)
+                    }
+                }
+            }
             .onAppear {
                 viewModel.refreshPins()
+                viewModel.loadSavedRoutes()
             }
             .fullScreenCover(isPresented: $viewModel.showPinDetails) {
                 if let selectedPin = viewModel.selectedPin {
                     PinDetailsView(savedPin: selectedPin)
                 }
             }
+            .fullScreenCover(isPresented: $viewModel.showCreateRoute) {
+                CreateRouteView()
+            }
+            .fullScreenCover(isPresented: $viewModel.showRouteDetails) {
+                if let selectedRoute = viewModel.selectedRoute {
+                    RouteDetailsView(route: selectedRoute)
+                }
+            }
+            .onChange(of: viewModel.showCreateRoute) { _, isPresented in
+                if !isPresented {
+                    // Refresh routes when coming back from CreateRouteView
+                    viewModel.loadSavedRoutes()
+
+                    // Refresh again after a delay to get updated distance calculations
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
+                        viewModel.loadSavedRoutes()
+                    }
+                }
+            }
         }
+    }
+}
+
+// MARK: - Routes List View
+
+struct RoutesListView: View {
+    let routes: [RouteEntity]
+    let viewModel: SavesTabViewModel
+    
+    var body: some View {
+        ScrollView {
+            LazyVStack(spacing: 12) {
+                ForEach(routes, id: \.id) { route in
+                    Button(action: {
+                        viewModel.showRouteDetails(route)
+                    }) {
+                        RouteRowView(route: route)
+                    }
+                    .buttonStyle(PlainButtonStyle())
+                    .padding(.horizontal, 20)
+                }
+            }
+            .padding(.vertical, 8)
+        }
+    }
+}
+
+// MARK: - Route Row View
+
+struct RouteRowView: View {
+    let route: RouteEntity
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            // Route name
+            Text(route.name)
+                .font(.headline)
+                .foregroundColor(.primary)
+                .lineLimit(1)
+            
+            // Stops and distance info
+            HStack {
+                Text("\(route.stopCount) stops • \(route.formattedDistance)")
+                    .font(.subheadline)
+                    .foregroundColor(.secondary)
+                
+                Spacer()
+            }
+            
+        }
+        .padding(16)
+        .background(.regularMaterial)
+        .cornerRadius(12)
     }
 }
 

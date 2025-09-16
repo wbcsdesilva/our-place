@@ -27,6 +27,7 @@ public class SavedPinEntity: NSManagedObject {
     @NSManaged public var createdAt: Date
     @NSManaged public var updatedAt: Date?
     @NSManaged public var category: CategoryEntity?
+    @NSManaged public var routeStops: NSSet?
     
     // MARK: - Computed Properties
     
@@ -188,4 +189,21 @@ public class SavedPinEntity: NSManagedObject {
         }
         self.updatedAt = Date()
     }
+}
+
+// MARK: - Generated accessors for routeStops
+
+extension SavedPinEntity {
+    
+    @objc(addRouteStopsObject:)
+    @NSManaged public func addToRouteStops(_ value: RouteStopEntity)
+    
+    @objc(removeRouteStopsObject:)
+    @NSManaged public func removeFromRouteStops(_ value: RouteStopEntity)
+    
+    @objc(addRouteStops:)
+    @NSManaged public func addToRouteStops(_ values: NSSet)
+    
+    @objc(removeRouteStops:)
+    @NSManaged public func removeFromRouteStops(_ values: NSSet)
 }
