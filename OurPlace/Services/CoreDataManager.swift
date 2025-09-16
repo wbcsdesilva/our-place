@@ -19,6 +19,11 @@ class CoreDataManager: ObservableObject {
                 fatalError("Core Data failed to load: \(error.localizedDescription)")
             }
         }
+
+        // Configure automatic merging for SwiftUI @FetchRequest updates
+        container.viewContext.automaticallyMergesChangesFromParent = true
+        container.viewContext.mergePolicy = NSMergeByPropertyObjectTrumpMergePolicy
+
         return container
     }()
     

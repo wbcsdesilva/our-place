@@ -51,4 +51,13 @@
         <relationship name="events" optional="YES" toMany="YES" deletionRule="Nullify" destinationEntity="EventEntity" inverseName="savedPin" inverseEntity="EventEntity"/>
         <relationship name="routeStops" optional="YES" toMany="YES" deletionRule="Nullify" destinationEntity="RouteStopEntity" inverseName="savedPin" inverseEntity="RouteStopEntity"/>
     </entity>
+    <entity name="UserProfileEntity" representedClassName="UserProfileEntity" syncable="YES">
+        <attribute name="bio" optional="YES" attributeType="String"/>
+        <attribute name="createdAt" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="displayName" attributeType="String"/>
+        <attribute name="firebaseUID" optional="YES" attributeType="String"/>
+        <attribute name="id" attributeType="UUID" usesScalarValueType="NO"/>
+        <attribute name="profilePhotoFileName" optional="YES" attributeType="String"/>
+        <attribute name="updatedAt" attributeType="Date" usesScalarValueType="NO"/>
+    </entity>
 </model>
