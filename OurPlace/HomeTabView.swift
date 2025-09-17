@@ -2,7 +2,7 @@
 //  HomeTabView.swift
 //  OurPlace
 //
-//  Created by Chaniru Sandive on 2025-01-XX.
+//  Created by Chaniru Sandive on 2025-08-16.
 //
 
 import SwiftUI
@@ -14,8 +14,7 @@ struct HomeTabView: View {
     @StateObject private var savesViewModel = SavesTabViewModel()
     
     var body: some View {
-        NavigationView {
-            ScrollView {
+        ScrollView {
                 VStack(spacing: 24) {
                     // Welcome Greeting Section
                     WelcomeSection(user: authVM.user)
@@ -42,11 +41,10 @@ struct HomeTabView: View {
                 eventViewModel.refreshEvents()
                 savesViewModel.loadSavedPins()
             }
-        }
-        .onAppear {
-            eventViewModel.loadEvents()
-            savesViewModel.loadSavedPins()
-        }
+            .onAppear {
+                eventViewModel.loadEvents()
+                savesViewModel.loadSavedPins()
+            }
     }
 }
 

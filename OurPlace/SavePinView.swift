@@ -8,30 +8,43 @@
 import SwiftUI
 import MapKit
 import CoreLocation
+import CoreData
 import PhotosUI
 import UniformTypeIdentifiers
 
 struct SavePinView: View {
     @StateObject private var viewModel: SavePinViewModel
     @State private var showDocumentPicker = false
-    @State private var showCreateCategory = false
+    @State private var navigationPath = NavigationPath()
+    @State private var selectedCategoryID: NSManagedObjectID?
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.managedObjectContext) private var context
+    @FetchRequest(
+        sortDescriptors: [NSSortDescriptor(keyPath: \CategoryEntity.name, ascending: true)],
+        animation: .default
+    )
+    private var categories: FetchedResults<CategoryEntity>
+
+    private var selectedCategory: CategoryEntity? {
+        guard let selectedCategoryID = selectedCategoryID else { return nil }
+        return context.object(with: selectedCategoryID) as? CategoryEntity
+    }
     
     let onSaveSuccess: () -> Void
     let onCancel: () -> Void
     
     init(pin: DroppedPin, placeName: String, address: String, onSaveSuccess: @escaping () -> Void = {}, onCancel: @escaping () -> Void = {}) {
+        self.onSaveSuccess = onSaveSuccess
+        self.onCancel = onCancel
         self._viewModel = StateObject(wrappedValue: SavePinViewModel(
             pin: pin,
             placeName: placeName,
             address: address
         ))
-        self.onSaveSuccess = onSaveSuccess
-        self.onCancel = onCancel
     }
     
     var body: some View {
-        NavigationView {
+        NavigationStack(path: $navigationPath) {
             ScrollView {
                 VStack(spacing: 24) {
                     // Map Preview
@@ -57,11 +70,13 @@ struct SavePinView: View {
                     
                     // Category Section
                     CategorySection(
-                        categories: viewModel.categories,
-                        selectedCategory: $viewModel.selectedCategory,
-                        onCategorySelected: viewModel.selectCategory,
+                        categories: Array(categories),
+                        selectedCategory: selectedCategory,
+                        onCategorySelected: { category in
+                            selectedCategoryID = category.objectID
+                        },
                         onCreateCategory: {
-                            showCreateCategory = true
+                            navigationPath.append(SaveFlowDestination.createCategory)
                         }
                     )
                     
@@ -84,7 +99,7 @@ struct SavePinView: View {
                     CustomButton(
                         title: "Save pin",
                         action: {
-                            viewModel.savePin()
+                            viewModel.savePin(selectedCategory: selectedCategory, context: context)
                             if viewModel.savedSuccessfully {
                                 onSaveSuccess()
                             }
@@ -117,9 +132,15 @@ struct SavePinView: View {
                     .foregroundColor(.blue)
                 }
             }
-        }
-        .fullScreenCover(isPresented: $showCreateCategory) {
-            CreateCategoryView(onCategoryCreated: viewModel.onCategoryCreated)
+            .navigationDestination(for: SaveFlowDestination.self) { destination in
+                switch destination {
+                case .createCategory:
+                    CreateCategoryView(onCategoryCreated: { categoryID in
+                        selectedCategoryID = categoryID
+                        navigationPath.removeLast()
+                    })
+                }
+            }
         }
     }
 }
@@ -243,20 +264,19 @@ struct AddressDisplay: View {
 
 struct CategorySection: View {
     let categories: [CategoryEntity]
-    @Binding var selectedCategory: CategoryEntity?
+    let selectedCategory: CategoryEntity?
     let onCategorySelected: (CategoryEntity) -> Void
     let onCreateCategory: () -> Void
-    @State private var showCategoryPicker = false
-    
+
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
                 Text("Category")
                     .font(.headline)
                     .foregroundColor(.primary)
-                
+
                 Spacer()
-                
+
                 Button(action: onCreateCategory) {
                     Image(systemName: "pencil.tip.crop.circle.badge.plus.fill")
                         .foregroundColor(.blue)
@@ -266,8 +286,19 @@ struct CategorySection: View {
                         .clipShape(Circle())
                 }
             }
-            
-            Button(action: { showCategoryPicker.toggle() }) {
+
+            Menu {
+                ForEach(categories, id: \.id) { category in
+                    Button(category.displayText) {
+                        onCategorySelected(category)
+                    }
+                }
+
+                if categories.isEmpty {
+                    Text("No categories available")
+                        .foregroundColor(.secondary)
+                }
+            } label: {
                 HStack {
                     if let selectedCategory = selectedCategory {
                         Text(selectedCategory.displayText)
@@ -286,28 +317,18 @@ struct CategorySection: View {
                             .background(.gray.opacity(0.2))
                             .cornerRadius(6)
                     }
-                    
+
                     Spacer()
-                    
+
                     Image(systemName: "chevron.down")
                         .foregroundColor(.secondary)
                         .font(.system(size: 14))
                 }
+                .padding(.horizontal, 16)
+                .padding(.vertical, 12)
+                .background(.regularMaterial)
+                .cornerRadius(12)
             }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 12)
-            .background(.regularMaterial)
-            .cornerRadius(12)
-        }
-        .actionSheet(isPresented: $showCategoryPicker) {
-            ActionSheet(
-                title: Text("Select Category"),
-                buttons: categories.map { category in
-                    .default(Text(category.displayText)) {
-                        onCategorySelected(category)
-                    }
-                } + [.cancel()]
-            )
         }
     }
 }

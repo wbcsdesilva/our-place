@@ -136,7 +136,7 @@ struct ForgotPasswordView: View {
 }
 
 #Preview {
-    NavigationView {
+    NavigationStack {
         ForgotPasswordView()
     }
 }

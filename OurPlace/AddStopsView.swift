@@ -27,70 +27,67 @@ struct AddStopsView: View {
     }
     
     var body: some View {
-        NavigationView {
-            VStack(spacing: 0) {
-                // Search Bar
-                HStack {
-                    Image(systemName: "magnifyingglass")
-                        .foregroundColor(.secondary)
-                    
-                    TextField("Search", text: $searchText)
-                        .textFieldStyle(.plain)
+        VStack(spacing: 0) {
+            // Search Bar
+            HStack {
+                Image(systemName: "magnifyingglass")
+                    .foregroundColor(.secondary)
+
+                TextField("Search", text: $searchText)
+                    .textFieldStyle(.plain)
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 12)
+            .background(Color(.systemGray6))
+            .cornerRadius(10)
+            .padding(.horizontal, 16)
+            .padding(.top, 16)
+
+            // Add Button
+            HStack {
+                Spacer()
+                Button("Add") {
+                    // Check if we still need this
                 }
-                .padding(.horizontal, 16)
-                .padding(.vertical, 12)
-                .background(Color(.systemGray6))
-                .cornerRadius(10)
-                .padding(.horizontal, 16)
-                .padding(.top, 16)
-                
-                // Add Button
-                HStack {
-                    Spacer()
-                    Button("Add") {
-                        // This button seems to be in the design but not clear what it does
-                        // Maybe for adding a new pin directly from here
-                    }
-                    .foregroundColor(.blue)
-                    .padding(.trailing, 16)
-                    .padding(.top, 8)
-                }
-                
-                // Pins List
-                if filteredPins.isEmpty {
-                    EmptyAddStopsView()
-                } else {
-                    ScrollView {
-                        LazyVStack(spacing: 0) {
-                            ForEach(filteredPins, id: \.id) { pin in
-                                AddStopRowView(
-                                    pin: pin,
-                                    onTap: {
-                                        onStopSelected(pin)
-                                        dismiss()
-                                    }
-                                )
-                                
-                                if pin.id != filteredPins.last?.id {
-                                    Divider()
-                                        .padding(.leading, 76)
+                .foregroundColor(.blue)
+                .padding(.trailing, 16)
+                .padding(.top, 8)
+            }
+
+            // Pins List
+            if filteredPins.isEmpty {
+                EmptyAddStopsView()
+            } else {
+                ScrollView {
+                    LazyVStack(spacing: 0) {
+                        ForEach(filteredPins, id: \.id) { pin in
+                            AddStopRowView(
+                                pin: pin,
+                                onTap: {
+                                    onStopSelected(pin)
+                                    dismiss()
                                 }
+                            )
+
+                            if pin.id != filteredPins.last?.id {
+                                Divider()
+                                    .padding(.leading, 76)
                             }
                         }
-                        .padding(.top, 16)
                     }
+                    .padding(.top, 16)
                 }
-                
-                Spacer()
             }
-            .navigationTitle("Add Stop")
-            .navigationBarTitleDisplayMode(.inline)
-            .navigationBarBackButtonHidden(true)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarLeading) {
-                    Button("Cancel") {
-                        dismiss()
-                    }
+
+            Spacer()
+        }
+        .navigationTitle("Add Stop")
+        .navigationBarTitleDisplayMode(.inline)
+        .navigationBarBackButtonHidden(true)
+        .toolbar {
+            ToolbarItem(placement: .navigationBarLeading) {
+                Button("Cancel") {
+                    dismiss()
                 }
             }
         }

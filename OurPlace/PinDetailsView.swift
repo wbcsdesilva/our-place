@@ -20,9 +20,8 @@ struct PinDetailsView: View {
     var onStartNavigation: ((SavedPinEntity) -> Void)?
     
     var body: some View {
-        NavigationView {
-            ZStack {
-                ScrollView {
+        ZStack {
+            ScrollView {
                 VStack(spacing: 24) {
                     PinDetailsMapPreview(savedPin: savedPin)
                         .frame(height: 200)
@@ -92,7 +91,7 @@ struct PinDetailsView: View {
                 .padding(.horizontal, 16)
                 .padding(.bottom, 32)
             }
-            
+
             VStack {
                 Spacer()
                 HStack {
@@ -116,21 +115,20 @@ struct PinDetailsView: View {
             }
         }
         .navigationTitle("Pin Details")
-            .navigationBarTitleDisplayMode(.inline)
-            .navigationBarBackButtonHidden(true)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarLeading) {
-                    Button("Back") {
-                        dismiss()
-                    }
+        .navigationBarTitleDisplayMode(.inline)
+        .navigationBarBackButtonHidden(true)
+        .toolbar {
+            ToolbarItem(placement: .navigationBarLeading) {
+                Button("Back") {
+                    dismiss()
                 }
-                
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("Edit") {
-                        // TODO: Navigate to edit pin screen
-                    }
-                    .foregroundColor(.blue)
+            }
+
+            ToolbarItem(placement: .navigationBarTrailing) {
+                Button("Edit") {
+                    // TODO: Navigate to edit pin screen
                 }
+                .foregroundColor(.blue)
             }
         }
         .sheet(isPresented: $showQuickLook) {

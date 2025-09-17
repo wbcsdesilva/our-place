@@ -207,6 +207,10 @@ class MapViewModel: ObservableObject {
         selectedSavedPin = annotation.savedPin
         showPinDetailsView = true
     }
+
+    func selectSavedPin(_ annotation: SavedPinAnnotation) {
+        selectedSavedPin = annotation.savedPin
+    }
     
     // MARK: - Private Methods
     private func updateRegion(to location: CLLocationCoordinate2D) {

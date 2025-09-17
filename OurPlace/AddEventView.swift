@@ -24,7 +24,7 @@ struct AddEventView: View {
     private let reminderOptions: [Int16] = [5, 10, 15, 30, 60]
     
     var body: some View {
-        NavigationView {
+        NavigationStack {
             Form {
                 Section("Event Details") {
                     TextField("Event name", text: $eventName)

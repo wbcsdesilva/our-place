@@ -21,8 +21,7 @@ struct EventsTabView: View {
     }()
     
     var body: some View {
-        NavigationView {
-            VStack(spacing: 0) {
+        VStack(spacing: 0) {
                 CalendarView(
                     currentMonth: $currentMonth,
                     selectedDate: $selectedDate,
@@ -53,10 +52,9 @@ struct EventsTabView: View {
             .refreshable {
                 eventViewModel.refreshEvents()
             }
-        }
-        .onAppear {
-            eventViewModel.loadEvents()
-        }
+            .onAppear {
+                eventViewModel.loadEvents()
+            }
     }
 }
 

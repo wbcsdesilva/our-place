@@ -11,14 +11,14 @@ import MapKit
 struct RouteEditView: View {
     @Environment(\.dismiss) private var dismiss
     @StateObject private var viewModel: EditRouteViewModel
-    @State private var showAddStops = false
+    @State private var navigationPath = NavigationPath()
 
     init(route: RouteEntity) {
         self._viewModel = StateObject(wrappedValue: EditRouteViewModel(route: route))
     }
 
     var body: some View {
-        NavigationView {
+        NavigationStack(path: $navigationPath) {
             VStack(spacing: 0) {
                 routeDetailsContent
                 bottomButtons
@@ -29,13 +29,17 @@ struct RouteEditView: View {
             .toolbar {
                 toolbarContent
             }
-        }
-        .fullScreenCover(isPresented: $showAddStops) {
-            AddStopsView(
-                onStopSelected: { selectedPin in
-                    viewModel.addStop(selectedPin)
+            .navigationDestination(for: RouteFlowDestination.self) { destination in
+                switch destination {
+                case .addStops:
+                    AddStopsView(
+                        onStopSelected: { selectedPin in
+                            viewModel.addStop(selectedPin)
+                            navigationPath.removeLast()
+                        }
+                    )
                 }
-            )
+            }
         }
         .onChange(of: viewModel.changesSaved) { _, saved in
             if saved {
@@ -90,7 +94,7 @@ struct RouteEditView: View {
 
     private var addButton: some View {
         Button(action: {
-            showAddStops = true
+            navigationPath.append(RouteFlowDestination.addStops)
         }) {
             Image(systemName: "plus")
                 .font(.title2)

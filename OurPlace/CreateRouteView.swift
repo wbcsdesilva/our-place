@@ -11,10 +11,10 @@ import MapKit
 struct CreateRouteView: View {
     @Environment(\.dismiss) private var dismiss
     @StateObject private var viewModel = CreateRouteViewModel()
-    @State private var showAddStops = false
+    @State private var navigationPath = NavigationPath()
     
     var body: some View {
-        NavigationView {
+        NavigationStack(path: $navigationPath) {
             VStack(spacing: 0) {
                 // Route Details Form
                 ScrollView {
@@ -42,7 +42,7 @@ struct CreateRouteView: View {
 
                                 // Add stops button
                                 Button(action: {
-                                    showAddStops = true
+                                    navigationPath.append(RouteFlowDestination.addStops)
                                 }) {
                                     Image(systemName: "plus")
                                         .font(.title2)
@@ -125,13 +125,17 @@ struct CreateRouteView: View {
                     }
                 }
             }
-        }
-        .fullScreenCover(isPresented: $showAddStops) {
-            AddStopsView(
-                onStopSelected: { selectedPin in
-                    viewModel.addStop(selectedPin)
+            .navigationDestination(for: RouteFlowDestination.self) { destination in
+                switch destination {
+                case .addStops:
+                    AddStopsView(
+                        onStopSelected: { selectedPin in
+                            viewModel.addStop(selectedPin)
+                            navigationPath.removeLast()
+                        }
+                    )
                 }
-            )
+            }
         }
         .onChange(of: viewModel.routeCreated) { _, created in
             if created {

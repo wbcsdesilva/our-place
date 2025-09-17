@@ -9,10 +9,10 @@ import SwiftUI
 
 struct SavesTabView: View {
     @StateObject private var viewModel = SavesTabViewModel()
+    @EnvironmentObject var router: AppRouter
     
     var body: some View {
-        NavigationView {
-            VStack(spacing: 0) {
+        VStack(spacing: 0) {
                 // Segmented Picker
                 Picker("Content Type", selection: $viewModel.selectedSegment) {
                     Text("Pins").tag(0)
@@ -61,18 +61,8 @@ struct SavesTabView: View {
                 viewModel.refreshPins()
                 viewModel.loadSavedRoutes()
             }
-            .fullScreenCover(isPresented: $viewModel.showPinDetails) {
-                if let selectedPin = viewModel.selectedPin {
-                    PinDetailsView(savedPin: selectedPin)
-                }
-            }
             .fullScreenCover(isPresented: $viewModel.showCreateRoute) {
                 CreateRouteView()
-            }
-            .fullScreenCover(isPresented: $viewModel.showRouteDetails) {
-                if let selectedRoute = viewModel.selectedRoute {
-                    RouteDetailsView(route: selectedRoute)
-                }
             }
             .onChange(of: viewModel.showCreateRoute) { _, isPresented in
                 if !isPresented {
@@ -84,7 +74,6 @@ struct SavesTabView: View {
                         viewModel.loadSavedRoutes()
                     }
                 }
-            }
         }
     }
 }
@@ -94,13 +83,14 @@ struct SavesTabView: View {
 struct RoutesListView: View {
     let routes: [RouteEntity]
     let viewModel: SavesTabViewModel
+    @EnvironmentObject var router: AppRouter
     
     var body: some View {
         ScrollView {
             LazyVStack(spacing: 12) {
                 ForEach(routes, id: \.id) { route in
                     Button(action: {
-                        viewModel.showRouteDetails(route)
+                        router.navigateToRoute(route.objectID)
                     }) {
                         RouteRowView(route: route)
                     }
@@ -147,13 +137,15 @@ struct RouteRowView: View {
 struct PinsListView: View {
     let pins: [SavedPinEntity]
     let viewModel: SavesTabViewModel
+    @EnvironmentObject var router: AppRouter
     
     var body: some View {
         ScrollView {
             LazyVStack(spacing: 12) {
                 ForEach(pins, id: \.id) { pin in
                     Button(action: {
-                        viewModel.showPinDetails(pin)
+                        router.selectedTab = .map
+                        router.mapDeepLink = .showPinDetails(pin.objectID)
                     }) {
                         PinRowView(pin: pin, viewModel: viewModel)
                     }
@@ -267,5 +259,6 @@ struct EmptyRoutesView: View {
 
 #Preview {
     SavesTabView()
+        .environmentObject(AppRouter())
         .environment(\.managedObjectContext, CoreDataManager.shared.context)
 }

@@ -13,10 +13,11 @@ struct MapTabView: View {
     @StateObject private var viewModel = MapViewModel()
     @StateObject private var searchViewModel = MapSearchViewModel()
     @StateObject private var navigationViewModel = NavigationViewModel()
+    @EnvironmentObject var router: AppRouter
+    @Environment(\.managedObjectContext) private var context
     
     var body: some View {
-        NavigationView {
-            ZStack {
+        ZStack {
             MapReader { proxy in
                 Map(position: $viewModel.cameraPosition) {
                     if let userLocation = viewModel.userLocation {
@@ -51,7 +52,8 @@ struct MapTabView: View {
                             SavedPinAnnotationView(
                                 annotation: annotation,
                                 onTap: { annotation in
-                                    viewModel.showSavedPinDetails(annotation)
+                                    viewModel.selectSavedPin(annotation)
+                                    router.mapDeepLink = .showPinDetails(annotation.savedPin.objectID)
                                 }
                             )
                         }
@@ -124,7 +126,8 @@ struct MapTabView: View {
                                     ForEach(searchViewModel.savedPinResults) { result in
                                         Button(action: {
                                             let annotation = SavedPinAnnotation(savedPin: result.savedPin)
-                                            viewModel.showSavedPinDetails(annotation)
+                                            viewModel.selectSavedPin(annotation)
+                                            router.mapDeepLink = .showPinDetails(result.savedPin.objectID)
                                             searchViewModel.searchText = ""
                                         }) {
                                             HStack(spacing: 12) {
@@ -293,18 +296,6 @@ struct MapTabView: View {
                 )
             }
         }
-        .fullScreenCover(isPresented: $viewModel.showPinDetailsView) {
-            if let savedPin = viewModel.selectedSavedPin {
-                PinDetailsView(
-                    savedPin: savedPin,
-                    onStartNavigation: { pin in
-                        if let userLocation = viewModel.userLocation {
-                            navigationViewModel.startNavigation(to: pin, from: userLocation)
-                        }
-                    }
-                )
-            }
-        }
         .onAppear {
             viewModel.refreshSavedPins()
             if let userLocation = viewModel.userLocation {
@@ -316,6 +307,16 @@ struct MapTabView: View {
                 searchViewModel.setUserLocation(location)
             }
         }
+        .onChange(of: router.shouldStartNavigation) { _, triggerObjectID in
+            guard let triggerObjectID = triggerObjectID,
+                  let userLocation = viewModel.userLocation else { return }
+
+            // Find the savedPin with the matching objectID
+            if let savedPin = try? context.existingObject(with: triggerObjectID) as? SavedPinEntity {
+                navigationViewModel.startNavigation(to: savedPin, from: userLocation)
+            }
+
+            router.clearNavigationTrigger()
         }
     }
 }
@@ -585,4 +586,5 @@ struct TransportModeButton: View {
 
 #Preview {
     MapTabView()
+        .environmentObject(AppRouter())
 }

@@ -22,8 +22,7 @@ struct RouteDetailsView: View {
     }
 
     var body: some View {
-        NavigationView {
-            VStack(spacing: 0) {
+        VStack(spacing: 0) {
                 // Mini Map Preview
                 RouteDetailsMapView(stops: viewModel.currentStops)
                     .frame(height: 250)
@@ -86,23 +85,10 @@ struct RouteDetailsView: View {
                 }
                 .padding(.horizontal, 16)
                 .padding(.bottom, 16)
-            }
-            .navigationTitle("")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarLeading) {
-                    Button(action: {
-                        dismiss()
-                    }) {
-                        HStack(spacing: 4) {
-                            Image(systemName: "chevron.left")
-                                .font(.system(size: 16, weight: .medium))
-                            Text("Back")
-                        }
-                        .foregroundColor(.blue)
-                    }
-                }
-
+        }
+        .navigationTitle("Route Details")
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button("Edit") {
                         showEditView = true
@@ -110,7 +96,6 @@ struct RouteDetailsView: View {
                     .foregroundColor(.blue)
                 }
             }
-        }
         .fullScreenCover(isPresented: $showEditView) {
             RouteEditView(route: route)
         }

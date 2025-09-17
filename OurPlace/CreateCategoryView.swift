@@ -6,100 +6,99 @@
 //
 
 import SwiftUI
+import CoreData
 
 struct CreateCategoryView: View {
     @StateObject private var viewModel = CreateCategoryViewModel()
     @Environment(\.dismiss) private var dismiss
     
     // Callback to notify when category is created
-    let onCategoryCreated: ((CategoryEntity) -> Void)?
-    
-    init(onCategoryCreated: ((CategoryEntity) -> Void)? = nil) {
+    let onCategoryCreated: ((NSManagedObjectID) -> Void)?
+
+    init(onCategoryCreated: ((NSManagedObjectID) -> Void)? = nil) {
         self.onCategoryCreated = onCategoryCreated
     }
     
     var body: some View {
-        NavigationView {
-            VStack {
-                ScrollView {
-                    VStack(spacing: 24) {
-                        VStack(spacing: 16) {
-                            // Category Name Field
-                            CategoryNameField(text: $viewModel.categoryName)
-                            
-                            // Category Symbol Field
-                            VStack(alignment: .leading, spacing: 8) {
-                                CategorySymbolFieldWithLabel(
-                                    text: $viewModel.categorySymbol,
-                                    showError: $viewModel.showEmojiError,
-                                    onTextChange: viewModel.validateSymbol
-                                )
-                                
-                                if viewModel.showEmojiError {
-                                    Text("Please enter exactly one character")
-                                        .font(.caption)
-                                        .foregroundColor(.red)
-                                        .padding(.leading, 16)
-                                }
-                            }
-                            
-                            // Color Picker Section
-                            ColorPickerSection(
-                                selectedColor: $viewModel.selectedColor
+        VStack {
+            ScrollView {
+                VStack(spacing: 24) {
+                    VStack(spacing: 16) {
+                        // Category Name Field
+                        CategoryNameField(text: $viewModel.categoryName)
+
+                        // Category Symbol Field
+                        VStack(alignment: .leading, spacing: 8) {
+                            CategorySymbolFieldWithLabel(
+                                text: $viewModel.categorySymbol,
+                                showError: $viewModel.showEmojiError,
+                                onTextChange: viewModel.validateSymbol
                             )
-                            
-                            // Error Message
-                            if let errorMessage = viewModel.errorMessage {
-                                Text(errorMessage)
+
+                            if viewModel.showEmojiError {
+                                Text("Please enter exactly one character")
                                     .font(.caption)
                                     .foregroundColor(.red)
-                                    .padding(.horizontal, 16)
+                                    .padding(.leading, 16)
                             }
                         }
-                        
-                        // Preview Section
-                        PreviewSection(
-                            name: viewModel.categoryName,
-                            symbol: viewModel.categorySymbol,
-                            color: viewModel.selectedColor
+
+                        // Color Picker Section
+                        ColorPickerSection(
+                            selectedColor: $viewModel.selectedColor
                         )
+
+                        // Error Message
+                        if let errorMessage = viewModel.errorMessage {
+                            Text(errorMessage)
+                                .font(.caption)
+                                .foregroundColor(.red)
+                                .padding(.horizontal, 16)
+                        }
                     }
-                    .padding(.horizontal, 20)
-                    .padding(.top, 16)
-                }
-                
-                // Create Button - Fixed at bottom
-                VStack {
-                    Divider()
-                    
-                    CustomButton(
-                        title: "Create",
-                        action: {
-                            if let createdCategory = viewModel.createCategory() {
-                                onCategoryCreated?(createdCategory)
-                                dismiss()
-                            }
-                        },
-                        isLoading: viewModel.isLoading,
-                        backgroundColor: .blue
+
+                    // Preview Section
+                    PreviewSection(
+                        name: viewModel.categoryName,
+                        symbol: viewModel.categorySymbol,
+                        color: viewModel.selectedColor
                     )
-                    .disabled(!viewModel.isFormValid || viewModel.isLoading)
-                    .opacity(viewModel.isFormValid && !viewModel.isLoading ? 1.0 : 0.6)
-                    .padding(.horizontal, 20)
-                    .padding(.bottom, 34) // Safe area padding
                 }
-                .background(Color(.systemBackground))
+                .padding(.horizontal, 20)
+                .padding(.top, 16)
             }
-            .navigationTitle("Create category")
-            .navigationBarTitleDisplayMode(.inline)
-            .navigationBarBackButtonHidden()
-            .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("Cancel") {
-                        dismiss()
-                    }
-                    .foregroundColor(.blue)
+
+            // Create Button - Fixed at bottom
+            VStack {
+                Divider()
+
+                CustomButton(
+                    title: "Create",
+                    action: {
+                        if let createdCategory = viewModel.createCategory() {
+                            onCategoryCreated?(createdCategory.objectID)
+                            dismiss()
+                        }
+                    },
+                    isLoading: viewModel.isLoading,
+                    backgroundColor: .blue
+                )
+                .disabled(!viewModel.isFormValid || viewModel.isLoading)
+                .opacity(viewModel.isFormValid && !viewModel.isLoading ? 1.0 : 0.6)
+                .padding(.horizontal, 20)
+                .padding(.bottom, 34) // Safe area padding
+            }
+            .background(Color(.systemBackground))
+        }
+        .navigationTitle("Create category")
+        .navigationBarTitleDisplayMode(.inline)
+        .navigationBarBackButtonHidden()
+        .toolbar {
+            ToolbarItem(placement: .navigationBarTrailing) {
+                Button("Cancel") {
+                    dismiss()
                 }
+                .foregroundColor(.blue)
             }
         }
     }

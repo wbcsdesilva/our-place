@@ -2,7 +2,7 @@
 //  SettingsTabView.swift
 //  OurPlace
 //
-//  Created by Chaniru Sandive on 2025-01-XX.
+//  Created by Chaniru Sandive on 2025-08-16.
 //
 
 import SwiftUI
@@ -25,8 +25,7 @@ struct SettingsTabView: View {
     }
 
     var body: some View {
-        NavigationView {
-            List {
+        List {
                 // Profile Section
                 Section {
                     if let userProfile = userProfile {
@@ -96,11 +95,10 @@ struct SettingsTabView: View {
                 } header: {
                     Text("Account")
                 }
-            }
-            .navigationTitle("Settings")
-            .onAppear {
-                ensureProfileExists()
-            }
+        }
+        .navigationTitle("Settings")
+        .onAppear {
+            ensureProfileExists()
         }
     }
 

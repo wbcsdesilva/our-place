@@ -11,6 +11,7 @@ import Firebase
 @main
 struct OurPlaceApp: App {
     @StateObject private var authVM = AuthViewModel()
+    @StateObject private var router = AppRouter()
     @State private var resetPasswordOobCode: String?
     @State private var showResetPassword = false
     
@@ -33,6 +34,7 @@ struct OurPlaceApp: App {
         WindowGroup {
             AuthWrapperView()
                 .environmentObject(authVM)
+                .environmentObject(router)
                 .environment(\.managedObjectContext, CoreDataManager.shared.context)
                 .fullScreenCover(isPresented: $showResetPassword) {
                     if let oobCode = resetPasswordOobCode {

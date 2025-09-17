@@ -11,8 +11,6 @@ import PhotosUI
 import Foundation
 
 class SavePinViewModel: ObservableObject {
-    @Published var categories: [CategoryEntity] = []
-    @Published var selectedCategory: CategoryEntity?
     @Published var editedPlaceName: String
     @Published var notes = ""
     @Published var selectedPhotos: [PhotosPickerItem] = []
@@ -21,54 +19,31 @@ class SavePinViewModel: ObservableObject {
     @Published var isLoading = false
     @Published var errorMessage: String?
     @Published var savedSuccessfully = false
-    
-    private let coreDataManager = CoreDataManager.shared
+
     let pin: DroppedPin
     let originalPlaceName: String
     let address: String
-    
+
     init(pin: DroppedPin, placeName: String, address: String) {
         self.pin = pin
         self.originalPlaceName = placeName
         self.address = address
         self.editedPlaceName = placeName
-        
-        loadCategories()
     }
     
-    func loadCategories() {
-        categories = CategoryEntity.fetchAllCategories(context: coreDataManager.context)
-        
-        // Set default selection to first category if none selected
-        if selectedCategory == nil && !categories.isEmpty {
-            selectedCategory = categories.first
-        }
-    }
-    
-    func selectCategory(_ category: CategoryEntity) {
-        selectedCategory = category
-    }
-    
-    func onCategoryCreated(_ newCategory: CategoryEntity) {
-        // Reload categories to include the new one
-        loadCategories()
-        // Auto-select the newly created category
-        selectedCategory = newCategory
-    }
-    
-    func savePin() {
+    func savePin(selectedCategory: CategoryEntity?, context: NSManagedObjectContext) {
         guard let selectedCategory = selectedCategory else {
             errorMessage = "Please select a category"
             return
         }
-        
+
         isLoading = true
         errorMessage = nil
-        
+
         do {
             // Create the saved pin entity
             let savedPin = SavedPinEntity(
-                context: coreDataManager.context,
+                context: context,
                 placeName: editedPlaceName.trimmingCharacters(in: .whitespacesAndNewlines),
                 address: address,
                 coordinate: pin.coordinate,
@@ -85,7 +60,7 @@ class SavePinViewModel: ObservableObject {
             savedPin.attachmentFilePathsArray = attachmentFilePaths
             
             // Save to Core Data
-            coreDataManager.save()
+            try context.save()
             
             print("✅ Successfully saved pin: \(savedPin.placeName)")
             savedSuccessfully = true
