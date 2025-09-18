@@ -7,11 +7,18 @@
 
 import SwiftUI
 import FirebaseAuth
+import CoreData
 
 struct HomeTabView: View {
     @EnvironmentObject var authVM: AuthViewModel
     @StateObject private var eventViewModel = EventViewModel()
     @StateObject private var savesViewModel = SavesTabViewModel()
+
+    @FetchRequest(
+        sortDescriptors: [NSSortDescriptor(keyPath: \EventEntity.startDate, ascending: true)],
+        animation: .default
+    )
+    private var allEvents: FetchedResults<EventEntity>
     
     var body: some View {
         ScrollView {
@@ -21,7 +28,7 @@ struct HomeTabView: View {
                         .padding(.top, 16)
                     
                     // Events Today Section
-                    EventsTodaySection(eventViewModel: eventViewModel)
+                    EventsTodaySection(allEvents: Array(allEvents))
                     
                     // Stats Section
                     StatsSection(savesViewModel: savesViewModel)
@@ -42,7 +49,6 @@ struct HomeTabView: View {
                 savesViewModel.loadSavedPins()
             }
             .onAppear {
-                eventViewModel.loadEvents()
                 savesViewModel.loadSavedPins()
             }
     }
@@ -100,10 +106,17 @@ struct WelcomeSection: View {
 
 // MARK: - Events Today Section
 struct EventsTodaySection: View {
-    @ObservedObject var eventViewModel: EventViewModel
-    
+    let allEvents: [EventEntity]
+
     private var todaysEvents: [EventEntity] {
-        eventViewModel.getEventsForDate(Date())
+        let calendar = Calendar.current
+        let startOfDay = calendar.startOfDay(for: Date())
+        let endOfDay = calendar.date(byAdding: .day, value: 1, to: startOfDay)!
+
+        return allEvents.filter { event in
+            guard let startDate = event.startDate else { return false }
+            return startDate >= startOfDay && startDate < endOfDay
+        }
     }
     
     var body: some View {
@@ -181,8 +194,8 @@ struct TodayEventRow: View {
             Spacer()
             
             VStack(alignment: .trailing, spacing: 2) {
-                if let eventDate = event.eventDate {
-                    Text(eventDate, format: .dateTime.hour().minute())
+                if let startDate = event.startDate {
+                    Text(startDate, format: .dateTime.hour().minute())
                         .font(.caption)
                         .fontWeight(.medium)
                         .foregroundColor(.blue)

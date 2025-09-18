@@ -6,55 +6,83 @@
 //
 
 import SwiftUI
+import CoreData
 
 struct EventsTabView: View {
     @StateObject private var eventViewModel = EventViewModel()
     @State private var selectedDate = Date()
-    @State private var showAddEvent = false
     @State private var currentMonth = Date()
-    
+    @State private var showAddEvent = false
+
+    @FetchRequest(
+        sortDescriptors: [NSSortDescriptor(keyPath: \EventEntity.startDate, ascending: true)],
+        animation: .default
+    )
+    private var allEvents: FetchedResults<EventEntity>
+
+    @FetchRequest(
+        sortDescriptors: [NSSortDescriptor(keyPath: \EventEntity.startDate, ascending: true)],
+        predicate: NSPredicate(format: "startDate > %@", Date() as NSDate),
+        animation: .default
+    )
+    private var upcomingEvents: FetchedResults<EventEntity>
+
     private let calendar = Calendar.current
     private let dateFormatter: DateFormatter = {
         let formatter = DateFormatter()
         formatter.dateFormat = "MMMM yyyy"
         return formatter
     }()
-    
+
+    private func getDatesWithEvents(for month: Date) -> Set<Date> {
+        let calendar = Calendar.current
+        let startOfMonth = calendar.dateInterval(of: .month, for: month)?.start ?? month
+        let endOfMonth = calendar.dateInterval(of: .month, for: month)?.end ?? month
+
+        let monthEvents = allEvents.filter { event in
+            guard let startDate = event.startDate else { return false }
+            return startDate >= startOfMonth && startDate <= endOfMonth
+        }
+
+        let dates = Set<Date>(monthEvents.compactMap { event in
+            guard let startDate = event.startDate else { return nil }
+            return calendar.startOfDay(for: startDate)
+        })
+        return dates
+    }
+
     var body: some View {
         VStack(spacing: 0) {
-                CalendarView(
-                    currentMonth: $currentMonth,
-                    selectedDate: $selectedDate,
-                    datesWithEvents: eventViewModel.getDatesWithEvents(for: currentMonth),
-                    eventViewModel: eventViewModel
-                )
+            CalendarView(
+                currentMonth: $currentMonth,
+                selectedDate: $selectedDate,
+                datesWithEvents: getDatesWithEvents(for: currentMonth),
+                eventViewModel: eventViewModel
+            )
+            .padding(.horizontal, 16)
+            .padding(.top, 16)
+
+            UpcomingEventsSection(events: Array(upcomingEvents), eventViewModel: eventViewModel)
                 .padding(.horizontal, 16)
-                .padding(.top, 16)
-                
-                UpcomingEventsSection(events: eventViewModel.upcomingEvents)
-                    .padding(.horizontal, 16)
-            }
-            .navigationTitle("Events")
-            .navigationBarTitleDisplayMode(.large)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button(action: {
-                        showAddEvent = true
-                    }) {
-                        Image(systemName: "plus")
-                            .foregroundColor(.blue)
-                    }
+        }
+        .navigationTitle("Events")
+        .navigationBarTitleDisplayMode(.large)
+        .toolbar {
+            ToolbarItem(placement: .navigationBarTrailing) {
+                Button(action: {
+                    showAddEvent = true
+                }) {
+                    Image(systemName: "plus")
+                        .foregroundColor(.blue)
                 }
             }
-            .fullScreenCover(isPresented: $showAddEvent) {
-                AddEventView(eventViewModel: eventViewModel)
-            }
-            .refreshable {
-                eventViewModel.refreshEvents()
-            }
-            .onAppear {
-                eventViewModel.loadEvents()
-            }
+        }
+        .fullScreenCover(isPresented: $showAddEvent) {
+            AddEventView(eventViewModel: eventViewModel)
+        }
+        .refreshable {
+            eventViewModel.refreshEvents()
+        }
     }
 }
 
@@ -106,19 +134,19 @@ struct CalendarView: View {
                 }
                 
                 ForEach(daysInMonth(), id: \.self) { date in
-                    CalendarDayView(
-                        date: date,
-                        isSelected: calendar.isDate(date, inSameDayAs: selectedDate),
-                        hasEvents: datesWithEvents.contains(calendar.startOfDay(for: date)),
-                        onTap: {
-                            selectedDate = date
-                        }
-                    )
+                    NavigationLink(destination: DayEventsView(date: date, eventViewModel: eventViewModel)) {
+                        CalendarDayViewContent(
+                            date: date,
+                            isSelected: calendar.isDate(date, inSameDayAs: selectedDate),
+                            hasEvents: datesWithEvents.contains(calendar.startOfDay(for: date))
+                        )
+                    }
+                    .buttonStyle(PlainButtonStyle())
+                    .simultaneousGesture(TapGesture().onEnded {
+                        selectedDate = date
+                    })
                 }
             }
-        }
-        .onChange(of: currentMonth) { _, _ in
-            eventViewModel.loadEvents()
         }
     }
     
@@ -156,47 +184,44 @@ struct CalendarView: View {
     }
 }
 
-struct CalendarDayView: View {
+struct CalendarDayViewContent: View {
     let date: Date
     let isSelected: Bool
     let hasEvents: Bool
-    let onTap: () -> Void
-    
+
     private let calendar = Calendar.current
-    
+
     var isCurrentMonth: Bool {
         calendar.isDate(date, equalTo: Date(), toGranularity: .month)
     }
-    
+
     var isToday: Bool {
         calendar.isDateInToday(date)
     }
-    
+
     var body: some View {
-        Button(action: onTap) {
-            VStack(spacing: 2) {
-                Text("\(calendar.component(.day, from: date))")
-                    .font(.system(size: 16, weight: .medium))
-                    .foregroundColor(textColor)
-                
-                if hasEvents {
-                    Circle()
-                        .fill(Color.blue)
-                        .frame(width: 4, height: 4)
-                } else {
-                    Circle()
-                        .fill(Color.clear)
-                        .frame(width: 4, height: 4)
-                }
-            }
-            .frame(width: 32, height: 36)
-            .background(
+        VStack(spacing: 2) {
+            Text("\(calendar.component(.day, from: date))")
+                .font(.system(size: 16, weight: .medium))
+                .foregroundColor(textColor)
+
+            if hasEvents {
                 Circle()
-                    .fill(backgroundColor)
-                    .frame(width: 32, height: 32)
-            )
+                    .fill(Color.blue)
+                    .frame(width: 4, height: 4)
+            } else {
+                Circle()
+                    .fill(Color.clear)
+                    .frame(width: 4, height: 4)
+            }
         }
-        .buttonStyle(PlainButtonStyle())
+        .frame(width: 32, height: 36)
+        .background(
+            Circle()
+                .fill(backgroundColor)
+                .frame(width: 32, height: 32)
+        )
+        .contentShape(Rectangle())
     }
     
     private var textColor: Color {
@@ -224,7 +249,10 @@ struct CalendarDayView: View {
 
 struct UpcomingEventsSection: View {
     let events: [EventEntity]
-    
+    @ObservedObject var eventViewModel: EventViewModel
+    @State private var eventToDelete: EventEntity?
+    @State private var showDeleteConfirmation = false
+
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
             Text("Upcoming events")
@@ -244,12 +272,28 @@ struct UpcomingEventsSection: View {
                     LazyVStack(spacing: 12) {
                         ForEach(events, id: \.id) { event in
                             EventRowView(event: event, currentTime: context.date)
+                                .contextMenu {
+                                    Button("Delete Event", systemImage: "trash", role: .destructive) {
+                                        eventToDelete = event
+                                        showDeleteConfirmation = true
+                                    }
+                                }
                         }
                     }
                 }
             }
             
             Spacer()
+        }
+        .alert("Delete Event", isPresented: $showDeleteConfirmation, presenting: eventToDelete) { event in
+            Button("Delete", role: .destructive) {
+                Task {
+                    await eventViewModel.deleteEvent(event)
+                }
+            }
+            Button("Cancel", role: .cancel) { }
+        } message: { event in
+            Text("Are you sure you want to delete '\(event.name ?? "this event")'? This action cannot be undone.")
         }
     }
 }
@@ -312,11 +356,11 @@ struct EventRowView: View {
     }
     
     private func timeUntilEvent(for event: EventEntity, from currentTime: Date) -> String {
-        guard let eventDate = event.eventDate else { 
-            return "Unknown time" 
+        guard let startDate = event.startDate else {
+            return "Unknown time"
         }
-        
-        let timeInterval = eventDate.timeIntervalSince(currentTime)
+
+        let timeInterval = startDate.timeIntervalSince(currentTime)
         
         if timeInterval <= 0 {
             return "Past event"

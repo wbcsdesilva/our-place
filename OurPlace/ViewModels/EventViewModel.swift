@@ -13,8 +13,6 @@ import UIKit
 
 @MainActor
 class EventViewModel: NSObject, ObservableObject, UNUserNotificationCenterDelegate {
-    @Published var events: [EventEntity] = []
-    @Published var upcomingEvents: [EventEntity] = []
     @Published var isLoading = false
     @Published var errorMessage: String?
     
@@ -25,7 +23,6 @@ class EventViewModel: NSObject, ObservableObject, UNUserNotificationCenterDelega
     override init() {
         super.init()
         notificationCenter.delegate = self
-        loadEvents()
         requestPermissions()
         clearBadgeCount()
     }
@@ -67,49 +64,29 @@ class EventViewModel: NSObject, ObservableObject, UNUserNotificationCenterDelega
         }
     }
     
-    func loadEvents() {
-        isLoading = true
-        
-        events = EventEntity.fetchAllEvents(context: coreDataManager.context)
-        upcomingEvents = EventEntity.fetchUpcomingEvents(context: coreDataManager.context)
-        
-        isLoading = false
-    }
     
     func getEventsForDate(_ date: Date) -> [EventEntity] {
         return EventEntity.fetchEventsForDate(date, context: coreDataManager.context)
     }
     
-    func getDatesWithEvents(for month: Date) -> Set<Date> {
-        let calendar = Calendar.current
-        let startOfMonth = calendar.dateInterval(of: .month, for: month)?.start ?? month
-        let endOfMonth = calendar.dateInterval(of: .month, for: month)?.end ?? month
-        
-        let monthEvents = events.filter { event in
-            guard let eventDate = event.eventDate else { return false }
-            return eventDate >= startOfMonth && eventDate <= endOfMonth
-        }
-        
-        let dates = Set<Date>(monthEvents.compactMap { event in
-            guard let eventDate = event.eventDate else { return nil }
-            return calendar.startOfDay(for: eventDate)
-        })
-        return dates
-    }
     
-    func createEvent(name: String, eventDate: Date, reminderMinutes: Int16, savedPin: SavedPinEntity) async -> Bool {
+    func createEvent(name: String, startDate: Date, endDate: Date, reminderMinutes: Int16, isAllDay: Bool = false, savedPin: SavedPinEntity) async -> Bool {
         do {
             let newEvent = EventEntity(
                 context: coreDataManager.context,
                 name: name,
-                eventDate: eventDate,
+                startDate: startDate,
+                endDate: endDate,
+                isAllDay: isAllDay,
                 reminderMinutes: reminderMinutes,
                 savedPin: savedPin
             )
-            
+
             let calendarEventID = try await createCalendarEvent(
                 title: name,
-                date: eventDate,
+                startDate: startDate,
+                endDate: endDate,
+                isAllDay: isAllDay,
                 location: savedPin.placeName,
                 notes: "Event at \(savedPin.address)"
             )
@@ -120,11 +97,7 @@ class EventViewModel: NSObject, ObservableObject, UNUserNotificationCenterDelega
             newEvent.isReminderScheduled = true
             
             try coreDataManager.context.save()
-            
-            await MainActor.run {
-                loadEvents()
-            }
-            
+
             return true
         } catch {
             await MainActor.run {
@@ -134,16 +107,17 @@ class EventViewModel: NSObject, ObservableObject, UNUserNotificationCenterDelega
         }
     }
     
-    private func createCalendarEvent(title: String, date: Date, location: String, notes: String) async throws -> String? {
+    private func createCalendarEvent(title: String, startDate: Date, endDate: Date, isAllDay: Bool, location: String, notes: String) async throws -> String? {
         return try await withCheckedThrowingContinuation { continuation in
             let event = EKEvent(eventStore: eventStore)
             event.title = title
-            event.startDate = date
-            event.endDate = date.addingTimeInterval(3600)
+            event.startDate = startDate
+            event.endDate = endDate
+            event.isAllDay = isAllDay
             event.location = location
             event.notes = notes
             event.calendar = eventStore.defaultCalendarForNewEvents
-            
+
             do {
                 try eventStore.save(event, span: .thisEvent)
                 continuation.resume(returning: event.eventIdentifier)
@@ -155,13 +129,13 @@ class EventViewModel: NSObject, ObservableObject, UNUserNotificationCenterDelega
     
     // Schedule local notification for event reminder
     private func scheduleLocalNotification(for event: EventEntity) async throws {
-        guard let eventDate = event.eventDate,
+        guard let startDate = event.startDate,
               let eventName = event.name,
               let eventId = event.id else {
             throw NSError(domain: "EventViewModel", code: 1, userInfo: [NSLocalizedDescriptionKey: "Missing event data"])
         }
-        
-        let triggerDate = eventDate.addingTimeInterval(-Double(event.reminderMinutes * 60))
+
+        let triggerDate = startDate.addingTimeInterval(-Double(event.reminderMinutes * 60))
         
         // Don't schedule notifications for past trigger times
         if triggerDate <= Date() {
@@ -190,16 +164,12 @@ class EventViewModel: NSObject, ObservableObject, UNUserNotificationCenterDelega
         if let eventKitID = event.eventKitEventID {
             await deleteCalendarEvent(eventKitID: eventKitID)
         }
-        
+
         if let eventId = event.id {
             notificationCenter.removePendingNotificationRequests(withIdentifiers: [eventId.uuidString])
         }
-        
+
         event.delete(context: coreDataManager.context)
-        
-        await MainActor.run {
-            loadEvents()
-        }
     }
     
     private func deleteCalendarEvent(eventKitID: String) async {
@@ -213,7 +183,8 @@ class EventViewModel: NSObject, ObservableObject, UNUserNotificationCenterDelega
     }
     
     func refreshEvents() {
-        loadEvents()
+        // @FetchRequest automatically updates, so this is just for pull-to-refresh compatibility
+        // Could trigger EventKit refresh here if needed
     }
     
     
@@ -246,5 +217,6 @@ class EventViewModel: NSObject, ObservableObject, UNUserNotificationCenterDelega
             UIApplication.shared.applicationIconBadgeNumber = 0
         }
     }
-    
+
+
 }

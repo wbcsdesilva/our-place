@@ -14,7 +14,9 @@ public class EventEntity: NSManagedObject {
     
     @NSManaged public var id: UUID?
     @NSManaged public var name: String?
-    @NSManaged public var eventDate: Date?
+    @NSManaged public var startDate: Date?
+    @NSManaged public var endDate: Date?
+    @NSManaged public var isAllDay: Bool
     @NSManaged public var reminderMinutes: Int16
     @NSManaged public var eventKitEventID: String?
     @NSManaged public var isReminderScheduled: Bool
@@ -22,11 +24,13 @@ public class EventEntity: NSManagedObject {
     @NSManaged public var updatedAt: Date?
     @NSManaged public var savedPin: SavedPinEntity?
     
-    convenience init(context: NSManagedObjectContext, name: String, eventDate: Date, reminderMinutes: Int16, savedPin: SavedPinEntity) {
+    convenience init(context: NSManagedObjectContext, name: String, startDate: Date, endDate: Date, isAllDay: Bool, reminderMinutes: Int16, savedPin: SavedPinEntity) {
         self.init(context: context)
         self.id = UUID()
         self.name = name
-        self.eventDate = eventDate
+        self.startDate = startDate
+        self.endDate = endDate
+        self.isAllDay = isAllDay
         self.reminderMinutes = reminderMinutes
         self.savedPin = savedPin
         self.isReminderScheduled = false
@@ -35,25 +39,25 @@ public class EventEntity: NSManagedObject {
     }
     
     var isUpcoming: Bool {
-        guard let eventDate = eventDate else { return false }
-        return eventDate > Date()
+        guard let startDate = startDate else { return false }
+        return startDate > Date()
     }
     
     var timeUntilEvent: String {
-        guard let eventDate = eventDate else { 
-            return "Unknown time" 
+        guard let startDate = startDate else {
+            return "Unknown time"
         }
-        
+
         let now = Date()
-        let timeInterval = eventDate.timeIntervalSince(now)
-        
+        let timeInterval = startDate.timeIntervalSince(now)
+
         if timeInterval <= 0 {
             return "Past event"
         }
-        
+
         let days = Int(timeInterval / (24 * 60 * 60))
         let hours = Int((timeInterval.truncatingRemainder(dividingBy: 24 * 60 * 60)) / (60 * 60))
-        
+
         if days > 0 {
             return "in \(days) day\(days == 1 ? "" : "s")"
         } else if hours > 0 {
@@ -65,21 +69,21 @@ public class EventEntity: NSManagedObject {
     }
     
     var formattedDateTime: String {
-        guard let eventDate = eventDate else { return "Unknown date" }
-        
+        guard let startDate = startDate else { return "Unknown date" }
+
         let formatter = DateFormatter()
         formatter.dateFormat = "dd.MM.yyyy • hh:mma"
-        return formatter.string(from: eventDate)
+        return formatter.string(from: startDate)
     }
     
     var reminderTime: Date {
-        guard let eventDate = eventDate else { return Date() }
-        return eventDate.addingTimeInterval(-Double(reminderMinutes * 60))
+        guard let startDate = startDate else { return Date() }
+        return startDate.addingTimeInterval(-Double(reminderMinutes * 60))
     }
     
     static func fetchAllEvents(context: NSManagedObjectContext) -> [EventEntity] {
         let request: NSFetchRequest<EventEntity> = EventEntity.fetchRequest()
-        request.sortDescriptors = [NSSortDescriptor(keyPath: \EventEntity.eventDate, ascending: true)]
+        request.sortDescriptors = [NSSortDescriptor(keyPath: \EventEntity.startDate, ascending: true)]
         
         do {
             return try context.fetch(request)
@@ -91,8 +95,8 @@ public class EventEntity: NSManagedObject {
     
     static func fetchUpcomingEvents(context: NSManagedObjectContext) -> [EventEntity] {
         let request: NSFetchRequest<EventEntity> = EventEntity.fetchRequest()
-        request.predicate = NSPredicate(format: "eventDate > %@", Date() as NSDate)
-        request.sortDescriptors = [NSSortDescriptor(keyPath: \EventEntity.eventDate, ascending: true)]
+        request.predicate = NSPredicate(format: "startDate > %@", Date() as NSDate)
+        request.sortDescriptors = [NSSortDescriptor(keyPath: \EventEntity.startDate, ascending: true)]
         
         do {
             return try context.fetch(request)
@@ -106,10 +110,10 @@ public class EventEntity: NSManagedObject {
         let calendar = Calendar.current
         let startOfDay = calendar.startOfDay(for: date)
         let endOfDay = calendar.date(byAdding: .day, value: 1, to: startOfDay)!
-        
+
         let request: NSFetchRequest<EventEntity> = EventEntity.fetchRequest()
-        request.predicate = NSPredicate(format: "eventDate >= %@ AND eventDate < %@", startOfDay as NSDate, endOfDay as NSDate)
-        request.sortDescriptors = [NSSortDescriptor(keyPath: \EventEntity.eventDate, ascending: true)]
+        request.predicate = NSPredicate(format: "startDate >= %@ AND startDate < %@", startOfDay as NSDate, endOfDay as NSDate)
+        request.sortDescriptors = [NSSortDescriptor(keyPath: \EventEntity.startDate, ascending: true)]
         
         do {
             return try context.fetch(request)
@@ -122,7 +126,7 @@ public class EventEntity: NSManagedObject {
     static func fetchEventsForSavedPin(_ savedPin: SavedPinEntity, context: NSManagedObjectContext) -> [EventEntity] {
         let request: NSFetchRequest<EventEntity> = EventEntity.fetchRequest()
         request.predicate = NSPredicate(format: "savedPin == %@", savedPin)
-        request.sortDescriptors = [NSSortDescriptor(keyPath: \EventEntity.eventDate, ascending: true)]
+        request.sortDescriptors = [NSSortDescriptor(keyPath: \EventEntity.startDate, ascending: true)]
         
         do {
             return try context.fetch(request)
