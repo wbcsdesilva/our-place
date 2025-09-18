@@ -42,22 +42,24 @@ struct ResetPasswordView: View {
                 .padding(.top, 40)
                 
                 FormSectionView(spacing: 16) {
-                    CustomTextField(
-                        placeholder: "New Password",
+                    TextInput(
+                        title: "New Password",
+                        placeholder: "Enter your new password",
                         text: $viewModel.newPassword,
                         isSecure: true,
-                        icon: "key"
+                        icon: "lock"
                     )
-                    
+
                     PasswordStrengthView(password: viewModel.newPassword)
-                    
-                    CustomTextField(
-                        placeholder: "Confirm New Password",
+
+                    TextInput(
+                        title: "Confirm New Password",
+                        placeholder: "Confirm your new password",
                         text: $viewModel.confirmPassword,
                         isSecure: true,
-                        icon: "key.fill"
+                        icon: "lock"
                     )
-                    
+
                     if !viewModel.confirmPassword.isEmpty && viewModel.newPassword != viewModel.confirmPassword {
                         ErrorMessageView(
                             message: "Passwords do not match",

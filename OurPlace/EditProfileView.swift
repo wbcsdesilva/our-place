@@ -20,14 +20,10 @@ struct EditProfileView: View {
     @State private var profileImage: UIImage?
 
     var body: some View {
-        VStack(spacing: 0) {
-                // Profile Photo Section (Outside Form to avoid tap interception)
+        ScrollView {
+            VStack(spacing: 32) {
+                // Profile Photo Section
                 VStack(spacing: 20) {
-                    Text("Profile Photo")
-                        .font(.headline)
-                        .foregroundColor(.secondary)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(.horizontal)
 
                     VStack(spacing: 16) {
                         // Current/Selected Photo
@@ -96,53 +92,43 @@ struct EditProfileView: View {
                         }
                     }
                 }
-                .padding(.vertical)
-                .background(Color(.systemGroupedBackground))
 
-                Form {
+                // Information Section
+                VStack(alignment: .leading, spacing: 16) {
+                    TextInput(
+                        title: "Name",
+                        placeholder: "Enter your name",
+                        text: $displayName,
+                        icon: "person"
+                    )
 
-                // Profile Information Section
-                Section {
-                    HStack {
-                        Text("Name")
-                            .frame(width: 60, alignment: .leading)
-                        TextField("Enter your name", text: $displayName)
-                    }
+                    TextAreaInput(
+                        title: "Bio",
+                        placeholder: "Tell us about yourself",
+                        text: $bio,
+                        minHeight: 80
+                    )
 
-                    VStack(alignment: .leading, spacing: 8) {
-                        HStack {
-                            Text("Bio")
-                                .frame(width: 60, alignment: .leading)
-                            Spacer()
-                        }
-
-                        TextField("Tell us about yourself", text: $bio, axis: .vertical)
-                            .lineLimit(3...6)
-                    }
-                } header: {
-                    Text("Information")
+                    Text("Your name and bio will be visible to other users.")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                        .frame(maxWidth: .infinity, alignment: .leading)
                 }
-                }
-
-                // Save Button at Bottom
-                Button(action: {
-                    saveProfile()
-                }) {
-                    Text("Save Profile")
-                        .font(.headline)
-                        .fontWeight(.semibold)
-                        .foregroundColor(.white)
-                        .frame(maxWidth: .infinity)
-                        .padding()
-                        .background(displayName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? Color.gray : Color.blue)
-                        .cornerRadius(12)
-                }
-                .disabled(displayName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-                .padding(.horizontal, 16)
-                .padding(.bottom, 34) // Safe area
+            }
+            .padding(.horizontal, 20)
+            .padding(.top, 20)
+            .padding(.bottom, 40)
         }
         .navigationTitle("Edit Profile")
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .navigationBarTrailing) {
+                Button("Save") {
+                    saveProfile()
+                }
+                .disabled(displayName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+            }
+        }
         .onAppear {
             loadCurrentValues()
         }

@@ -21,7 +21,6 @@ struct RouteEditView: View {
         NavigationStack(path: $navigationPath) {
             VStack(spacing: 0) {
                 routeDetailsContent
-                bottomButtons
             }
             .navigationTitle("Edit Route")
             .navigationBarTitleDisplayMode(.inline)
@@ -60,14 +59,11 @@ struct RouteEditView: View {
     }
 
     private var routeNameInput: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text("Route Name")
-                .font(.headline)
-                .foregroundColor(.primary)
-
-            TextField("Enter route name", text: $viewModel.routeName)
-                .textFieldStyle(.roundedBorder)
-        }
+        TextInput(
+            title: "Route Name",
+            placeholder: "Enter route name",
+            text: $viewModel.routeName
+        )
         .padding(.horizontal, 16)
         .padding(.top, 16)
     }
@@ -136,60 +132,30 @@ struct RouteEditView: View {
     }
 
 
-    private var bottomButtons: some View {
-        HStack(spacing: 16) {
-            cancelButton
-            saveButton
-        }
-        .padding(.horizontal, 16)
-        .padding(.bottom, 16)
-        .background(.regularMaterial)
-    }
-
-    private var cancelButton: some View {
-        Button(action: {
-            dismiss()
-        }) {
-            Text("Cancel")
-                .fontWeight(.semibold)
-                .frame(maxWidth: .infinity)
-                .padding()
-                .background(Color(.systemGray5))
-                .foregroundColor(.primary)
-                .cornerRadius(10)
-        }
-    }
-
-    private var saveButton: some View {
-        let buttonText: String = viewModel.isSaving ? "Saving..." : "Save Changes"
-        let backgroundColor: Color = viewModel.canSave ? Color.blue : Color(.systemGray4)
-        let isDisabled: Bool = !viewModel.canSave || viewModel.isSaving
-
-        return Button(action: {
-            viewModel.saveChanges()
-        }) {
-            HStack {
-                if viewModel.isSaving {
-                    ProgressView()
-                        .scaleEffect(0.8)
-                        .progressViewStyle(CircularProgressViewStyle(tint: .white))
-                }
-                Text(buttonText)
-                    .fontWeight(.semibold)
-            }
-            .frame(maxWidth: .infinity)
-            .padding()
-            .background(backgroundColor)
-            .foregroundColor(.white)
-            .cornerRadius(10)
-        }
-        .disabled(isDisabled)
-    }
 
     private var toolbarContent: some ToolbarContent {
-        ToolbarItem(placement: .navigationBarLeading) {
-            Button("Cancel") {
-                dismiss()
+        Group {
+            ToolbarItem(placement: .navigationBarLeading) {
+                Button("Cancel") {
+                    dismiss()
+                }
+            }
+
+            ToolbarItem(placement: .navigationBarTrailing) {
+                Button(action: {
+                    viewModel.saveChanges()
+                }) {
+                    HStack {
+                        if viewModel.isSaving {
+                            ProgressView()
+                                .scaleEffect(0.8)
+                                .progressViewStyle(CircularProgressViewStyle(tint: .blue))
+                        }
+                        Text(viewModel.isSaving ? "Saving..." : "Save")
+                            .fontWeight(.semibold)
+                    }
+                }
+                .disabled(!viewModel.canSave || viewModel.isSaving)
             }
         }
     }

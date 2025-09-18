@@ -55,8 +55,9 @@ struct SavePinView: View {
                     
                     VStack(spacing: 16) {
                         // Place Name TextField
-                        CustomTextField(
-                            placeholder: "Place name",
+                        TextInput(
+                            title: "Place Name",
+                            placeholder: "Enter place name",
                             text: $viewModel.editedPlaceName,
                             icon: "mappin.and.ellipse"
                         )

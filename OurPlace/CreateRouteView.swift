@@ -20,14 +20,11 @@ struct CreateRouteView: View {
                 ScrollView {
                     VStack(alignment: .leading, spacing: 20) {
                         // Route Name Input
-                        VStack(alignment: .leading, spacing: 8) {
-                            Text("Route Name")
-                                .font(.headline)
-                                .foregroundColor(.primary)
-                            
-                            TextField("Enter route name", text: $viewModel.routeName)
-                                .textFieldStyle(.roundedBorder)
-                        }
+                        TextInput(
+                            title: "Route Name",
+                            placeholder: "Enter route name",
+                            text: $viewModel.routeName
+                        )
                         .padding(.horizontal, 16)
                         .padding(.top, 16)
                         
@@ -77,43 +74,6 @@ struct CreateRouteView: View {
                     }
                 }
                 
-                // Bottom Buttons
-                HStack(spacing: 16) {
-                    Button(action: {
-                        dismiss()
-                    }) {
-                        Text("Cancel")
-                            .fontWeight(.semibold)
-                            .frame(maxWidth: .infinity)
-                            .padding()
-                            .background(Color(.systemGray5))
-                            .foregroundColor(.primary)
-                            .cornerRadius(10)
-                    }
-                    
-                    Button(action: {
-                        viewModel.createRoute()
-                    }) {
-                        HStack {
-                            if viewModel.isCreatingRoute {
-                                ProgressView()
-                                    .scaleEffect(0.8)
-                                    .progressViewStyle(CircularProgressViewStyle(tint: .white))
-                            }
-                            Text(viewModel.isCreatingRoute ? "Creating..." : "Create")
-                                .fontWeight(.semibold)
-                        }
-                        .frame(maxWidth: .infinity)
-                        .padding()
-                        .background(viewModel.canCreateRoute ? Color.blue : Color(.systemGray4))
-                        .foregroundColor(.white)
-                        .cornerRadius(10)
-                    }
-                    .disabled(!viewModel.canCreateRoute || viewModel.isCreatingRoute)
-                }
-                .padding(.horizontal, 16)
-                .padding(.bottom, 16)
-                .background(.regularMaterial)
             }
             .navigationTitle("Create Route")
             .navigationBarTitleDisplayMode(.inline)
@@ -123,6 +83,23 @@ struct CreateRouteView: View {
                     Button("Cancel") {
                         dismiss()
                     }
+                }
+
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button(action: {
+                        viewModel.createRoute()
+                    }) {
+                        HStack {
+                            if viewModel.isCreatingRoute {
+                                ProgressView()
+                                    .scaleEffect(0.8)
+                                    .progressViewStyle(CircularProgressViewStyle(tint: .blue))
+                            }
+                            Text(viewModel.isCreatingRoute ? "Creating..." : "Create")
+                                .fontWeight(.semibold)
+                        }
+                    }
+                    .disabled(!viewModel.canCreateRoute || viewModel.isCreatingRoute)
                 }
             }
             .navigationDestination(for: RouteFlowDestination.self) { destination in

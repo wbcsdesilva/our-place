@@ -22,19 +22,21 @@ struct RouteDetailsView: View {
     }
 
     var body: some View {
-        VStack(spacing: 0) {
-                // Mini Map Preview
+        ScrollView {
+            VStack(spacing: 24) {
+                // Route Map Preview
                 RouteDetailsMapView(stops: viewModel.currentStops)
-                    .frame(height: 250)
+                    .frame(height: 200)
+                    .cornerRadius(16)
+                    .padding(.top, 16)
 
-                // Route Name Section
-                VStack(alignment: .leading, spacing: 8) {
+                // Route Details Section
+                VStack(spacing: 16) {
                     Text(route.name)
-                        .font(.title)
+                        .font(.title2)
                         .fontWeight(.bold)
                         .foregroundColor(.primary)
-                        .padding(.horizontal, 16)
-                        .padding(.top, 16)
+                        .frame(maxWidth: .infinity, alignment: .leading)
 
                     // Route Stats
                     HStack(spacing: 16) {
@@ -46,46 +48,42 @@ struct RouteDetailsView: View {
                             .font(.subheadline)
                             .foregroundColor(.secondary)
 
-                        if !viewModel.distanceFromUserLocation.isEmpty && !viewModel.distanceFromUserLocation.contains("unavailable") {
-                            Text(viewModel.distanceFromUserLocation)
-                                .font(.subheadline)
-                                .foregroundColor(.secondary)
-                        }
-                    }
-                    .padding(.horizontal, 16)
-                    .padding(.bottom, 16)
-                }
-
-                // Route Details Content
-                ScrollView {
-                    VStack(alignment: .leading, spacing: 20) {
-                        // Stops List
-                        StopsListSection(stops: viewModel.currentStops)
-
-                        Spacer(minLength: 100) // Extra space for directions button
+                        Spacer()
                     }
                 }
 
-                // Directions Button
-                Button(action: {
-                    showNavigationView = true
-                }) {
-                    HStack {
-                        Image(systemName: "location.fill")
-                            .font(.system(size: 16))
-                        Text("Start Navigation")
-                            .font(.headline)
-                            .fontWeight(.semibold)
-                    }
-                    .foregroundColor(.white)
-                    .frame(maxWidth: .infinity)
-                    .padding()
-                    .background(Color.blue)
-                    .cornerRadius(12)
-                }
-                .padding(.horizontal, 16)
-                .padding(.bottom, 16)
+                // Stops List
+                StopsListSection(stops: viewModel.currentStops)
+
+                Spacer(minLength: 100) // Extra space for directions button
+            }
+            .padding(.horizontal, 16)
+            .padding(.bottom, 32)
         }
+
+        // Floating Navigation Button (like PinDetailsView)
+        .overlay(
+            VStack {
+                Spacer()
+                HStack {
+                    Spacer()
+
+                    Button(action: {
+                        showNavigationView = true
+                    }) {
+                        Image(systemName: "location.fill")
+                            .font(.system(size: 20, weight: .medium))
+                            .foregroundColor(.white)
+                            .frame(width: 56, height: 56)
+                            .background(Color.blue)
+                            .clipShape(Circle())
+                            .shadow(color: .black.opacity(0.3), radius: 8, x: 0, y: 4)
+                    }
+                    .padding(.trailing, 20)
+                    .padding(.bottom, 40)
+                }
+            }
+        )
         .navigationTitle("Route Details")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
@@ -252,7 +250,7 @@ struct RouteDetailsMapView: View {
             }
         }
         .overlay(
-            RoundedRectangle(cornerRadius: 0)
+            RoundedRectangle(cornerRadius: 16)
                 .stroke(Color(.systemGray4), lineWidth: 1)
         )
         .onChange(of: stops) { _, _ in

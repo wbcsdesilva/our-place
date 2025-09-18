@@ -40,7 +40,7 @@ struct SavesTabView: View {
                     }
                 }
             }
-            .navigationTitle("Your Saves")
+            .navigationTitle("Saves")
             .navigationBarTitleDisplayMode(.large)
             .searchable(text: $viewModel.searchText, prompt: "Search")
             .toolbar {
@@ -143,13 +143,18 @@ struct PinsListView: View {
         ScrollView {
             LazyVStack(spacing: 12) {
                 ForEach(pins, id: \.id) { pin in
-                    Button(action: {
-                        router.selectedTab = .map
-                        router.mapDeepLink = .showPinDetails(pin.objectID)
-                    }) {
-                        PinRowView(pin: pin, viewModel: viewModel)
-                    }
-                    .buttonStyle(PlainButtonStyle())
+                    SavedPinCard(
+                        pin: pin,
+                        action: {
+                            router.selectedTab = .map
+                            router.mapDeepLink = .showPinDetails(pin.objectID)
+                        },
+                        showDate: true,
+                        dateFormatter: { date in
+                            guard let date = date else { return "" }
+                            return viewModel.formatDate(date)
+                        }
+                    )
                     .padding(.horizontal, 20)
                 }
             }
@@ -158,54 +163,6 @@ struct PinsListView: View {
     }
 }
 
-// MARK: - Pin Row View
-
-struct PinRowView: View {
-    let pin: SavedPinEntity
-    let viewModel: SavesTabViewModel
-    
-    var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            // Pin name
-            Text(pin.placeName)
-                .font(.headline)
-                .foregroundColor(.primary)
-                .lineLimit(1)
-            
-            // Address
-            Text(pin.shortAddress)
-                .font(.subheadline)
-                .foregroundColor(.secondary)
-                .lineLimit(2)
-            
-            // Category and date row
-            HStack {
-                // Category
-                if let category = pin.category {
-                    Text(category.displayText)
-                        .font(.caption)
-                        .fontWeight(.medium)
-                        .foregroundColor(.primary)
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 4)
-                        .background(category.color)
-                        .cornerRadius(4)
-                }
-                
-                Spacer()
-                
-                // Date
-                Text(viewModel.formatDate(pin.createdAt))
-                    .font(.caption)
-                    .fontWeight(.semibold)
-                    .foregroundColor(.secondary)
-            }
-        }
-        .padding(16)
-        .background(.regularMaterial)
-        .cornerRadius(12)
-    }
-}
 
 // MARK: - Empty States
 

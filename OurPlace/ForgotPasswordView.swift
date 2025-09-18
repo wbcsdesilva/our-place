@@ -40,11 +40,12 @@ struct ForgotPasswordView: View {
             
             // Email Field
             FormSectionView(spacing: 16) {
-                CustomTextField(
-                    placeholder: "Email",
+                TextInput(
+                    title: "Email",
+                    placeholder: "Enter your email address",
                     text: $email,
                     keyboardType: .emailAddress,
-                    autocapitalization: .none,
+                    autocapitalization: .never,
                     icon: "at"
                 )
             }

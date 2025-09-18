@@ -21,21 +21,23 @@ struct FormSectionView<Content: View>: View {
 
 #Preview {
     FormSectionView(spacing: 20, horizontalPadding: 30) {
-        CustomTextField(
-            placeholder: "Email",
+        TextInput(
+            title: "Email",
+            placeholder: "Enter your email",
             text: .constant(""),
             keyboardType: .emailAddress,
-            autocapitalization: .none,
+            autocapitalization: .never,
             icon: "at"
         )
-        
-        CustomTextField(
-            placeholder: "Password",
+
+        TextInput(
+            title: "Password",
+            placeholder: "Enter your password",
             text: .constant(""),
             isSecure: true,
-            icon: "key"
+            icon: "lock"
         )
-        
+
         CustomButton(
             title: "Submit",
             action: {}

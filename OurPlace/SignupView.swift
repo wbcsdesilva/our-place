@@ -24,36 +24,40 @@ struct SignupView: View {
                     .padding(.top, 50)
                 
                 FormSectionView(spacing: 15) {
-                    CustomTextField(
-                        placeholder: "Name",
+                    TextInput(
+                        title: "Name",
+                        placeholder: "Enter your full name",
                         text: $name,
                         icon: "person"
                     )
-                    
-                    CustomTextField(
-                        placeholder: "Email",
+
+                    TextInput(
+                        title: "Email",
+                        placeholder: "Enter your email",
                         text: $email,
                         keyboardType: .emailAddress,
-                        autocapitalization: .none,
+                        autocapitalization: .never,
                         icon: "at"
                     )
-                    
-                    CustomTextField(
-                        placeholder: "Password",
+
+                    TextInput(
+                        title: "Password",
+                        placeholder: "Enter your password",
                         text: $password,
                         isSecure: true,
-                        icon: "key"
+                        icon: "lock"
                     )
-                    
+
                     PasswordStrengthView(password: password)
-                    
-                    CustomTextField(
-                        placeholder: "Confirm Password",
+
+                    TextInput(
+                        title: "Confirm Password",
+                        placeholder: "Confirm your password",
                         text: $confirmPassword,
                         isSecure: true,
-                        icon: "key.fill"
+                        icon: "lock"
                     )
-                    
+
                     if !confirmPassword.isEmpty && password != confirmPassword {
                         ErrorMessageView(
                             message: "Passwords do not match",
