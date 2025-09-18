@@ -11,6 +11,7 @@ import CoreData
 
 struct HomeTabView: View {
     @EnvironmentObject var authVM: AuthViewModel
+    @EnvironmentObject var router: AppRouter
     @StateObject private var eventViewModel = EventViewModel()
     @StateObject private var savesViewModel = SavesTabViewModel()
 
@@ -33,11 +34,11 @@ struct HomeTabView: View {
                     // Stats Section
                     StatsSection(savesViewModel: savesViewModel)
                     
-                    // Quick Actions Section
-                    QuickActionsSection()
-                    
-                    // Recently Saved Section
-                    RecentlySavedSection(savesViewModel: savesViewModel)
+                    // Recently Saved Pins Section
+                    RecentlySavedSection(savesViewModel: savesViewModel, router: router)
+
+                    // Recently Saved Routes Section
+                    RecentlySavedRoutesSection(savesViewModel: savesViewModel, router: router)
                     
                     Spacer(minLength: 32)
                 }
@@ -47,9 +48,11 @@ struct HomeTabView: View {
             .refreshable {
                 eventViewModel.refreshEvents()
                 savesViewModel.loadSavedPins()
+                savesViewModel.loadSavedRoutes()
             }
             .onAppear {
                 savesViewModel.loadSavedPins()
+                savesViewModel.loadSavedRoutes()
             }
     }
 }
@@ -144,70 +147,14 @@ struct EventsTodaySection: View {
             } else {
                 VStack(spacing: 8) {
                     ForEach(todaysEvents, id: \.id) { event in
-                        TodayEventRow(event: event)
+                        EventCardSmall(event: event)
                     }
                 }
-                .padding()
-                .background(.regularMaterial)
-                .cornerRadius(12)
             }
         }
     }
 }
 
-struct TodayEventRow: View {
-    let event: EventEntity
-    
-    var body: some View {
-        HStack(spacing: 12) {
-            if let category = event.savedPin?.category {
-                Circle()
-                    .fill(category.color)
-                    .frame(width: 32, height: 32)
-                    .overlay(
-                        Text(category.symbol)
-                            .font(.system(size: 14))
-                            .foregroundColor(.white)
-                    )
-            } else {
-                Circle()
-                    .fill(Color.gray)
-                    .frame(width: 32, height: 32)
-                    .overlay(
-                        Image(systemName: "calendar")
-                            .font(.system(size: 14))
-                            .foregroundColor(.white)
-                    )
-            }
-            
-            VStack(alignment: .leading, spacing: 2) {
-                Text(event.name ?? "Unknown Event")
-                    .font(.body)
-                    .fontWeight(.medium)
-                    .foregroundColor(.primary)
-                
-                Text("at \(event.savedPin?.placeName ?? "Unknown location")")
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-            }
-            
-            Spacer()
-            
-            VStack(alignment: .trailing, spacing: 2) {
-                if let startDate = event.startDate {
-                    Text(startDate, format: .dateTime.hour().minute())
-                        .font(.caption)
-                        .fontWeight(.medium)
-                        .foregroundColor(.blue)
-                }
-                
-                Text(event.timeUntilEvent)
-                    .font(.caption2)
-                    .foregroundColor(.secondary)
-            }
-        }
-    }
-}
 
 // MARK: - Stats Section
 struct StatsSection: View {
@@ -225,7 +172,7 @@ struct StatsSection: View {
             StatCard(
                 icon: "map.fill",
                 title: "Routes Saved",
-                count: 0, // TODO: Get a real count here after the routes feature has finished implementation
+                count: savesViewModel.savedRoutes.count,
                 color: .green
             )
         }
@@ -261,85 +208,11 @@ struct StatCard: View {
     }
 }
 
-// MARK: - Quick Actions Section
-struct QuickActionsSection: View {
-    var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            Text("Quick Actions")
-                .font(.title2)
-                .fontWeight(.bold)
-                .frame(maxWidth: .infinity, alignment: .leading)
-            
-            LazyVGrid(columns: [
-                GridItem(.flexible()),
-                GridItem(.flexible()),
-                GridItem(.flexible())
-            ], spacing: 16) {
-                QuickActionButton(
-                    icon: "mappin.and.ellipse",
-                    title: "Add Pin",
-                    color: .blue,
-                    action: {
-                        // TODO: Navigate to add pin
-                    }
-                )
-                
-                QuickActionButton(
-                    icon: "arrow.trianglehead.turn.up.right.diamond.fill",
-                    title: "Navigation",
-                    color: .green,
-                    action: {
-                        // TODO: Start navigation
-                    }
-                )
-                
-                QuickActionButton(
-                    icon: "calendar.badge.plus",
-                    title: "Add Event",
-                    color: .orange,
-                    action: {
-                        // TODO: Navigate to add event
-                    }
-                )
-            }
-        }
-    }
-}
-
-struct QuickActionButton: View {
-    let icon: String
-    let title: String
-    let color: Color
-    let action: () -> Void
-    
-    var body: some View {
-        Button(action: action) {
-            VStack(spacing: 8) {
-                Image(systemName: icon)
-                    .font(.system(size: 24, weight: .medium))
-                    .foregroundColor(.white)
-                    .frame(width: 48, height: 48)
-                    .background(color)
-                    .clipShape(Circle())
-                
-                Text(title)
-                    .font(.caption)
-                    .fontWeight(.medium)
-                    .foregroundColor(.primary)
-                    .multilineTextAlignment(.center)
-            }
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, 12)
-            .background(Color(.systemGray6))
-            .cornerRadius(12)
-        }
-        .buttonStyle(PlainButtonStyle())
-    }
-}
 
 // MARK: - Recently Saved Section
 struct RecentlySavedSection: View {
     @ObservedObject var savesViewModel: SavesTabViewModel
+    let router: AppRouter
     
     private var recentPins: [SavedPinEntity] {
         Array(savesViewModel.savedPins.prefix(3))
@@ -370,65 +243,65 @@ struct RecentlySavedSection: View {
             } else {
                 VStack(spacing: 8) {
                     ForEach(recentPins, id: \.id) { pin in
-                        RecentPinRow(pin: pin)
+                        SavedPinCardSmall(pin: pin) {
+                            router.selectedTab = .map
+                            router.mapDeepLink = .showPinDetails(pin.objectID)
+                        }
                     }
                 }
-                .padding()
-                .background(.regularMaterial)
-                .cornerRadius(12)
             }
         }
     }
 }
 
-struct RecentPinRow: View {
-    let pin: SavedPinEntity
-    
+
+// MARK: - Recently Saved Routes Section
+struct RecentlySavedRoutesSection: View {
+    @ObservedObject var savesViewModel: SavesTabViewModel
+    let router: AppRouter
+
+    private var recentRoutes: [RouteEntity] {
+        Array(savesViewModel.savedRoutes.prefix(3))
+    }
+
     var body: some View {
-        HStack(spacing: 12) {
-            if let category = pin.category {
-                Circle()
-                    .fill(category.color)
-                    .frame(width: 32, height: 32)
-                    .overlay(
-                        Text(category.symbol)
-                            .font(.system(size: 14))
-                            .foregroundColor(.white)
-                    )
+        VStack(alignment: .leading, spacing: 16) {
+            Text("Recently Saved Routes")
+                .font(.title2)
+                .fontWeight(.bold)
+                .frame(maxWidth: .infinity, alignment: .leading)
+
+            if recentRoutes.isEmpty {
+                HStack {
+                    Image(systemName: "map")
+                        .foregroundColor(.gray)
+                        .font(.title2)
+
+                    Text("No saved routes yet")
+                        .font(.body)
+                        .foregroundColor(.secondary)
+
+                    Spacer()
+                }
+                .padding()
+                .background(Color(.systemGray6))
+                .cornerRadius(12)
             } else {
-                Circle()
-                    .fill(Color.gray)
-                    .frame(width: 32, height: 32)
-                    .overlay(
-                        Image(systemName: "mappin.circle.fill")
-                            .font(.system(size: 14))
-                            .foregroundColor(.white)
-                    )
+                VStack(spacing: 8) {
+                    ForEach(recentRoutes, id: \.id) { route in
+                        RouteCardSmall(route: route) {
+                            router.navigateToRoute(route.objectID)
+                        }
+                    }
+                }
             }
-            
-            VStack(alignment: .leading, spacing: 2) {
-                Text(pin.placeName)
-                    .font(.body)
-                    .fontWeight(.medium)
-                    .foregroundColor(.primary)
-                    .lineLimit(1)
-                
-                Text(pin.shortAddress)
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-                    .lineLimit(1)
-            }
-            
-            Spacer()
-            
-            Image(systemName: "chevron.right")
-                .font(.caption)
-                .foregroundColor(.secondary)
         }
     }
 }
+
 
 #Preview {
     HomeTabView()
         .environmentObject(AuthViewModel())
+        .environmentObject(AppRouter())
 }

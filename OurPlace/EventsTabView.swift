@@ -7,12 +7,67 @@
 
 import SwiftUI
 import CoreData
+import EventKit
+
+enum UpcomingEvent: Identifiable {
+    case app(EventEntity)
+    case external(title: String, location: String?, formattedTimeRange: String, isAllDay: Bool, ekIdentifier: String?)
+
+    var id: String {
+        switch self {
+        case .app(let event):
+            return event.id?.uuidString ?? UUID().uuidString
+        case .external(let title, let location, let formattedTimeRange, _, let ekIdentifier):
+            return ekIdentifier ?? "\(title)-\(location ?? "")-\(formattedTimeRange)"
+        }
+    }
+
+    var title: String {
+        switch self {
+        case .app(let event):
+            return event.name ?? "Unknown Event"
+        case .external(let title, _, _, _, _):
+            return title
+        }
+    }
+
+    var location: String? {
+        switch self {
+        case .app(let event):
+            return event.savedPin?.placeName
+        case .external(_, let location, _, _, _):
+            return location
+        }
+    }
+
+    var ekIdentifier: String? {
+        switch self {
+        case .app(let event):
+            return event.eventKitEventID
+        case .external(_, _, _, _, let ekIdentifier):
+            return ekIdentifier
+        }
+    }
+
+    var startDate: Date? {
+        switch self {
+        case .app(let event):
+            return event.startDate
+        case .external:
+            return nil // We'd need to store this if needed for sorting
+        }
+    }
+}
 
 struct EventsTabView: View {
     @StateObject private var eventViewModel = EventViewModel()
+    @StateObject private var eventKitService = EventKitService.shared
     @State private var selectedDate = Date()
     @State private var currentMonth = Date()
     @State private var showAddEvent = false
+    @State private var searchText = ""
+    @State private var allUpcomingEvents: [UpcomingEvent] = []
+    @State private var isLoading = false
 
     @FetchRequest(
         sortDescriptors: [NSSortDescriptor(keyPath: \EventEntity.startDate, ascending: true)],
@@ -51,22 +106,36 @@ struct EventsTabView: View {
         return dates
     }
 
-    var body: some View {
-        VStack(spacing: 0) {
-            CalendarView(
-                currentMonth: $currentMonth,
-                selectedDate: $selectedDate,
-                datesWithEvents: getDatesWithEvents(for: currentMonth),
-                eventViewModel: eventViewModel
-            )
-            .padding(.horizontal, 16)
-            .padding(.top, 16)
+    private var filteredEvents: [UpcomingEvent] {
+        if searchText.isEmpty {
+            return allUpcomingEvents
+        } else {
+            return allUpcomingEvents.filter { event in
+                event.title.localizedCaseInsensitiveContains(searchText) ||
+                event.location?.localizedCaseInsensitiveContains(searchText) == true
+            }
+        }
+    }
 
-            UpcomingEventsSection(events: Array(upcomingEvents), eventViewModel: eventViewModel)
+    var body: some View {
+        ScrollView {
+            VStack(spacing: 0) {
+                CalendarView(
+                    currentMonth: $currentMonth,
+                    selectedDate: $selectedDate,
+                    datesWithEvents: getDatesWithEvents(for: currentMonth),
+                    eventViewModel: eventViewModel
+                )
                 .padding(.horizontal, 16)
+                .padding(.top, 16)
+
+                UpcomingEventsSection(events: filteredEvents, eventViewModel: eventViewModel)
+                    .padding(.horizontal, 16)
+            }
         }
         .navigationTitle("Events")
         .navigationBarTitleDisplayMode(.large)
+        .searchable(text: $searchText, prompt: "Search events")
         .toolbar {
             ToolbarItem(placement: .navigationBarTrailing) {
                 Button(action: {
@@ -80,8 +149,59 @@ struct EventsTabView: View {
         .fullScreenCover(isPresented: $showAddEvent) {
             AddEventView(eventViewModel: eventViewModel)
         }
+        .onAppear {
+            loadAllUpcomingEvents()
+        }
+        .onReceive(eventKitService.$shouldRefresh) { _ in
+            loadAllUpcomingEvents()
+        }
         .refreshable {
             eventViewModel.refreshEvents()
+            loadAllUpcomingEvents()
+        }
+    }
+
+    private func loadAllUpcomingEvents() {
+        isLoading = true
+
+        Task {
+            var events: [UpcomingEvent] = []
+
+            // Add Core Data events
+            let coreDataEvents = Array(upcomingEvents)
+            events.append(contentsOf: coreDataEvents.map { .app($0) })
+
+            // Add EventKit events if access is granted
+            if eventKitService.hasCalendarAccess {
+                let now = Date()
+                let futureDate = Calendar.current.date(byAdding: .month, value: 3, to: now) ?? now
+                let ekEvents = eventKitService.fetchEvents(from: now, to: futureDate)
+
+                let externalEvents = ekEvents.map { ekEvent -> UpcomingEvent in
+                    let formatter = DateFormatter()
+                    formatter.dateStyle = .none
+                    formatter.timeStyle = .short
+
+                    let timeRange = "\(formatter.string(from: ekEvent.startDate)) - \(formatter.string(from: ekEvent.endDate))"
+
+                    return .external(
+                        title: ekEvent.title ?? "Unknown Event",
+                        location: ekEvent.location,
+                        formattedTimeRange: timeRange,
+                        isAllDay: ekEvent.isAllDay,
+                        ekIdentifier: ekEvent.eventIdentifier
+                    )
+                }
+                events.append(contentsOf: externalEvents)
+            }
+
+            // Deduplicate events (prioritize app events over calendar events)
+            let deduplicatedEvents = events.deduplicated()
+
+            await MainActor.run {
+                allUpcomingEvents = deduplicatedEvents
+                isLoading = false
+            }
         }
     }
 }
@@ -248,7 +368,7 @@ struct CalendarDayViewContent: View {
 }
 
 struct UpcomingEventsSection: View {
-    let events: [EventEntity]
+    let events: [UpcomingEvent]
     @ObservedObject var eventViewModel: EventViewModel
     @State private var eventToDelete: EventEntity?
     @State private var showDeleteConfirmation = false
@@ -270,14 +390,21 @@ struct UpcomingEventsSection: View {
             } else {
                 TimelineView(.periodic(from: .now, by: 5.0)) { context in
                     LazyVStack(spacing: 12) {
-                        ForEach(events, id: \.id) { event in
-                            EventRowView(event: event, currentTime: context.date)
-                                .contextMenu {
-                                    Button("Delete Event", systemImage: "trash", role: .destructive) {
-                                        eventToDelete = event
-                                        showDeleteConfirmation = true
-                                    }
+                        ForEach(events, id: \.id) { upcomingEvent in
+                            switch upcomingEvent {
+                            case .app(let event):
+                                EventCard(event: event, currentTime: context.date) {
+                                    eventToDelete = event
+                                    showDeleteConfirmation = true
                                 }
+                            case .external(let title, let location, let formattedTimeRange, let isAllDay, _):
+                                EventCardExternal(
+                                    title: title,
+                                    location: location,
+                                    formattedTimeRange: formattedTimeRange,
+                                    isAllDay: isAllDay
+                                )
+                            }
                         }
                     }
                 }
@@ -298,84 +425,39 @@ struct UpcomingEventsSection: View {
     }
 }
 
-struct EventRowView: View {
-    let event: EventEntity
-    let currentTime: Date
-    
-    var body: some View {
-        HStack(spacing: 12) {
-            if let category = event.savedPin?.category {
-                Circle()
-                    .fill(category.color)
-                    .frame(width: 40, height: 40)
-                    .overlay(
-                        Text(category.symbol)
-                            .font(.system(size: 18))
-                            .foregroundColor(.white)
-                    )
-            } else {
-                Circle()
-                    .fill(Color.gray)
-                    .frame(width: 40, height: 40)
-                    .overlay(
-                        Image(systemName: "mappin.circle.fill")
-                            .font(.system(size: 18))
-                            .foregroundColor(.white)
-                    )
-            }
-            
-            VStack(alignment: .leading, spacing: 4) {
-                Text(event.name ?? "Unknown Event")
-                    .font(.headline)
-                    .fontWeight(.semibold)
-                    .foregroundColor(.primary)
-                
-                Text("At \(event.savedPin?.placeName ?? "Unknown Location")")
-                    .font(.subheadline)
-                    .foregroundColor(.secondary)
-                
-                HStack {
-                    Text(event.formattedDateTime)
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                    
-                    Spacer()
-                    
-                    Text(timeUntilEvent(for: event, from: currentTime))
-                        .font(.caption)
-                        .fontWeight(.medium)
-                        .foregroundColor(.blue)
+
+// MARK: - Deduplication Logic
+extension Array where Element == UpcomingEvent {
+    // Remove duplicates, prioritizing app events over calendar events
+    func deduplicated() -> [UpcomingEvent] {
+        var seen = Set<String>()
+        var result: [UpcomingEvent] = []
+
+        // First pass: add all app events
+        for event in self {
+            if case .app(_) = event {
+                if let ekIdentifier = event.ekIdentifier {
+                    seen.insert(ekIdentifier)
                 }
+                result.append(event)
             }
-            
-            Spacer()
-        }
-        .padding(16)
-        .background(Color(.systemGray6))
-        .cornerRadius(12)
-    }
-    
-    private func timeUntilEvent(for event: EventEntity, from currentTime: Date) -> String {
-        guard let startDate = event.startDate else {
-            return "Unknown time"
         }
 
-        let timeInterval = startDate.timeIntervalSince(currentTime)
-        
-        if timeInterval <= 0 {
-            return "Past event"
+        // Second pass: add external events that don't have matching app events
+        for event in self {
+            if case .external(_, _, _, _, _) = event {
+                if let ekIdentifier = event.ekIdentifier, !seen.contains(ekIdentifier) {
+                    result.append(event)
+                }
+            }
         }
-        
-        let days = Int(timeInterval / (24 * 60 * 60))
-        let hours = Int((timeInterval.truncatingRemainder(dividingBy: 24 * 60 * 60)) / (60 * 60))
-        
-        if days > 0 {
-            return "in \(days) day\(days == 1 ? "" : "s")"
-        } else if hours > 0 {
-            return "in \(hours) hour\(hours == 1 ? "" : "s")"
-        } else {
-            let minutes = Int((timeInterval.truncatingRemainder(dividingBy: 60 * 60)) / 60)
-            return "in \(minutes) minute\(minutes == 1 ? "" : "s")"
+
+        // Sort by start date where available, then by title
+        return result.sorted { event1, event2 in
+            if let date1 = event1.startDate, let date2 = event2.startDate {
+                return date1 < date2
+            }
+            return event1.title < event2.title
         }
     }
 }

@@ -48,7 +48,7 @@ struct DayEventsView: View {
             }
         }
         .navigationTitle(dateFormatter.string(from: date))
-        .navigationBarTitleDisplayMode(.large)
+        .navigationBarTitleDisplayMode(.inline)
         .onAppear {
             loadDayEvents()
         }
@@ -72,15 +72,24 @@ struct DayEventsView: View {
         ScrollView {
             LazyVStack(spacing: 12) {
                 ForEach(dayEvents) { event in
-                    DayEventRow(event: event)
-                        .contextMenu {
-                            if event.source == .app {
-                                Button("Delete Event", systemImage: "trash", role: .destructive) {
-                                    eventToDelete = event
-                                    showDeleteConfirmation = true
-                                }
-                            }
+                    if event.source == .app,
+                       let coreDataURI = event.coreDataURI,
+                       let url = URL(string: coreDataURI),
+                       let objectID = coreDataManager.context.persistentStoreCoordinator?.managedObjectID(forURIRepresentation: url),
+                       let eventEntity = try? coreDataManager.context.existingObject(with: objectID) as? EventEntity {
+
+                        EventCard(event: eventEntity, currentTime: Date()) {
+                            eventToDelete = event
+                            showDeleteConfirmation = true
                         }
+                    } else {
+                        EventCardExternal(
+                            title: event.title,
+                            location: event.location,
+                            formattedTimeRange: event.formattedTimeRange,
+                            isAllDay: event.isAllDay
+                        )
+                    }
                 }
             }
             .padding(.horizontal, 16)
@@ -162,75 +171,6 @@ struct DayEventsView: View {
     }
 }
 
-struct DayEventRow: View {
-    let event: DayEvent
-
-    var body: some View {
-        HStack(spacing: 12) {
-            // Time indicator
-            VStack(alignment: .leading, spacing: 2) {
-                Text(event.formattedTimeRange)
-                    .font(.caption)
-                    .fontWeight(.medium)
-                    .foregroundColor(.secondary)
-
-                if event.isAllDay {
-                    Spacer()
-                }
-            }
-            .frame(width: 80, alignment: .leading)
-
-            // Event content
-            VStack(alignment: .leading, spacing: 4) {
-                Text(event.title)
-                    .font(.headline)
-                    .fontWeight(.semibold)
-                    .foregroundColor(.primary)
-
-                if let location = event.location, !location.isEmpty {
-                    Label(location, systemImage: "location")
-                        .font(.subheadline)
-                        .foregroundColor(.secondary)
-                        .lineLimit(1)
-                }
-
-                // Source indicator
-                HStack {
-                    Label(
-                        event.source == .app ? "OurPlace Event" : "Calendar Event",
-                        systemImage: event.source == .app ? "mappin.circle.fill" : "calendar"
-                    )
-                    .font(.caption)
-                    .foregroundColor(event.source == .app ? .blue : .secondary)
-
-                    Spacer()
-                }
-            }
-
-            Spacer()
-        }
-        .padding(16)
-        .background {
-            RoundedRectangle(cornerRadius: 12)
-                .fill(event.source == .app ? Color.blue.opacity(0.1) : Color(.systemGray6))
-        }
-        .overlay(alignment: .leading) {
-            if event.source == .app {
-                Rectangle()
-                    .fill(Color.blue)
-                    .frame(width: 4)
-                    .clipShape(
-                        .rect(
-                            topLeadingRadius: 12,
-                            bottomLeadingRadius: 12,
-                            bottomTrailingRadius: 0,
-                            topTrailingRadius: 0
-                        )
-                    )
-            }
-        }
-    }
-}
 
 #Preview {
     NavigationStack {

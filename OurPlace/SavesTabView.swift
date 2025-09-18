@@ -89,12 +89,9 @@ struct RoutesListView: View {
         ScrollView {
             LazyVStack(spacing: 12) {
                 ForEach(routes, id: \.id) { route in
-                    Button(action: {
+                    RouteCard(route: route) {
                         router.navigateToRoute(route.objectID)
-                    }) {
-                        RouteRowView(route: route)
                     }
-                    .buttonStyle(PlainButtonStyle())
                     .padding(.horizontal, 20)
                 }
             }
@@ -103,34 +100,6 @@ struct RoutesListView: View {
     }
 }
 
-// MARK: - Route Row View
-
-struct RouteRowView: View {
-    let route: RouteEntity
-    
-    var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            // Route name
-            Text(route.name)
-                .font(.headline)
-                .foregroundColor(.primary)
-                .lineLimit(1)
-            
-            // Stops and distance info
-            HStack {
-                Text("\(route.stopCount) stops • \(route.formattedDistance)")
-                    .font(.subheadline)
-                    .foregroundColor(.secondary)
-                
-                Spacer()
-            }
-            
-        }
-        .padding(16)
-        .background(.regularMaterial)
-        .cornerRadius(12)
-    }
-}
 
 // MARK: - Pins List View
 

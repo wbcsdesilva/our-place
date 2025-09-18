@@ -39,7 +39,7 @@ struct SavedPinCard: View {
                         Text(category.displayText)
                             .font(.caption)
                             .fontWeight(.medium)
-                            .foregroundColor(.white)
+                            .foregroundColor(.black)
                             .padding(.horizontal, 8)
                             .padding(.vertical, 4)
                             .background(category.color)
@@ -61,7 +61,7 @@ struct SavedPinCard: View {
             .background(.regularMaterial)
             .cornerRadius(12)
         }
-        .buttonStyle(PlainButtonStyle())
+        .buttonStyle(.plain)
     }
 
     private var formattedDate: String {
@@ -73,6 +73,70 @@ struct SavedPinCard: View {
             formatter.dateFormat = "dd.MM.yyyy"
             return formatter.string(from: pin.createdAt)
         }
+    }
+}
+
+// MARK: - Saved Pin Card Small Component
+
+struct SavedPinCardSmall: View {
+    let pin: SavedPinEntity
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 12) {
+                // Category circle
+                if let category = pin.category {
+                    Circle()
+                        .fill(category.color)
+                        .frame(width: 32, height: 32)
+                        .overlay(
+                            Text(category.symbol)
+                                .font(.system(size: 14))
+                                .foregroundColor(.white)
+                        )
+                } else {
+                    Circle()
+                        .fill(Color.gray)
+                        .frame(width: 32, height: 32)
+                        .overlay(
+                            Image(systemName: "mappin.circle.fill")
+                                .font(.system(size: 14))
+                                .foregroundColor(.white)
+                        )
+                }
+
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(pin.placeName)
+                        .font(.body)
+                        .fontWeight(.medium)
+                        .foregroundColor(.primary)
+                        .lineLimit(1)
+
+                    Text(pin.shortAddress)
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                        .lineLimit(1)
+                }
+
+                Spacer()
+
+                Text(formattedCreatedDate)
+                    .font(.caption2)
+                    .fontWeight(.medium)
+                    .foregroundColor(.blue)
+            }
+            .padding(12)
+            .background(.regularMaterial)
+            .cornerRadius(8)
+        }
+        .buttonStyle(.plain)
+    }
+
+    private var formattedCreatedDate: String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "dd.MM.yy"
+        return formatter.string(from: pin.createdAt)
     }
 }
 
