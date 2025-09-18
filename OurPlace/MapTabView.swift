@@ -9,6 +9,82 @@ import SwiftUI
 import MapKit
 import CoreLocation
 
+// MARK: - POI Category Helper
+
+struct POICategoryInfo {
+    let icon: String
+    let color: Color
+}
+
+func getPOICategoryInfo(for category: String?) -> POICategoryInfo {
+    guard let category = category else {
+        return POICategoryInfo(icon: "building.2.fill", color: .blue)
+    }
+
+    switch category {
+    case "MKPOICategoryRestaurant":
+        return POICategoryInfo(icon: "fork.knife", color: .red)
+    case "MKPOICategoryGasStation":
+        return POICategoryInfo(icon: "fuelpump.fill", color: .blue)
+    case "MKPOICategoryHospital":
+        return POICategoryInfo(icon: "cross.fill", color: .red)
+    case "MKPOICategoryPharmacy":
+        return POICategoryInfo(icon: "cross.case.fill", color: .green)
+    case "MKPOICategoryBank":
+        return POICategoryInfo(icon: "dollarsign.circle.fill", color: .green)
+    case "MKPOICategoryATM":
+        return POICategoryInfo(icon: "creditcard.fill", color: .blue)
+    case "MKPOICategoryHotel":
+        return POICategoryInfo(icon: "bed.double.fill", color: .purple)
+    case "MKPOICategorySchool":
+        return POICategoryInfo(icon: "graduationcap.fill", color: .blue)
+    case "MKPOICategoryLibrary":
+        return POICategoryInfo(icon: "book.fill", color: .brown)
+    case "MKPOICategoryMuseum":
+        return POICategoryInfo(icon: "building.columns.fill", color: .purple)
+    case "MKPOICategoryMovieTheater":
+        return POICategoryInfo(icon: "tv.fill", color: .indigo)
+    case "MKPOICategoryNightlife":
+        return POICategoryInfo(icon: "wineglass.fill", color: .purple)
+    case "MKPOICategoryPark":
+        return POICategoryInfo(icon: "tree.fill", color: .green)
+    case "MKPOICategoryAmusementPark":
+        return POICategoryInfo(icon: "gamecontroller.fill", color: .pink)
+    case "MKPOICategoryAquarium":
+        return POICategoryInfo(icon: "fish.fill", color: .blue)
+    case "MKPOICategoryZoo":
+        return POICategoryInfo(icon: "pawprint.fill", color: .blue)
+    case "MKPOICategoryStadium":
+        return POICategoryInfo(icon: "sportscourt.fill", color: .blue)
+    case "MKPOICategoryLaundry":
+        return POICategoryInfo(icon: "washer.fill", color: .blue)
+    case "MKPOICategoryFoodMarket":
+        return POICategoryInfo(icon: "cart.fill", color: .green)
+    case "MKPOICategoryBakery":
+        return POICategoryInfo(icon: "birthday.cake.fill", color: .blue)
+    case "MKPOICategoryCafe":
+        return POICategoryInfo(icon: "cup.and.saucer.fill", color: .brown)
+    case "MKPOICategoryStore":
+        return POICategoryInfo(icon: "bag.fill", color: .blue)
+    case "MKPOICategoryParking":
+        return POICategoryInfo(icon: "car.fill", color: .gray)
+    case "MKPOICategoryPostOffice":
+        return POICategoryInfo(icon: "envelope.fill", color: .blue)
+    case "MKPOICategoryPublicTransport":
+        return POICategoryInfo(icon: "bus.fill", color: .blue)
+    case "MKPOICategoryAirport":
+        return POICategoryInfo(icon: "airplane", color: .blue)
+    case "MKPOICategoryBeach":
+        return POICategoryInfo(icon: "beach.umbrella.fill", color: .cyan)
+    case "MKPOICategoryMarina":
+        return POICategoryInfo(icon: "sailboat.fill", color: .blue)
+    case "MKPOICategoryEVCharger":
+        return POICategoryInfo(icon: "bolt.fill", color: .green)
+    default:
+        return POICategoryInfo(icon: "building.2.fill", color: .blue)
+    }
+}
+
 struct MapTabView: View {
     @StateObject private var viewModel = MapViewModel()
     @StateObject private var searchViewModel = MapSearchViewModel()
@@ -195,53 +271,52 @@ struct MapTabView: View {
                                         .padding(.horizontal, 16)
                                     
                                     ForEach(searchViewModel.poiResults) { result in
-                                        HStack(spacing: 12) {
-                                            VStack(spacing: 4) {
-                                                Circle()
-                                                    .fill(Color.orange.opacity(0.2))
-                                                    .frame(width: 32, height: 32)
-                                                    .overlay(
-                                                        Image(systemName: "building.2.fill")
-                                                            .font(.system(size: 14))
-                                                            .foregroundColor(.orange)
-                                                    )
-                                                
-                                                if let distance = result.distance {
-                                                    Text(distance < 1000 ? String(format: "%.0fm", distance) : String(format: "%.1fkm", distance / 1000))
-                                                        .font(.caption2)
-                                                        .foregroundColor(.secondary)
+                                        Button(action: {
+                                            viewModel.selectSearchPlace(result)
+                                            searchViewModel.searchText = ""
+                                        }) {
+                                            HStack(spacing: 12) {
+                                                VStack(spacing: 4) {
+                                                    let categoryInfo = getPOICategoryInfo(for: result.category)
+                                                    Circle()
+                                                        .fill(categoryInfo.color.opacity(0.2))
+                                                        .frame(width: 32, height: 32)
+                                                        .overlay(
+                                                            Image(systemName: categoryInfo.icon)
+                                                                .font(.system(size: 14))
+                                                                .foregroundColor(categoryInfo.color)
+                                                        )
+
+                                                    if let distance = result.distance {
+                                                        Text(distance < 1000 ? String(format: "%.0fm", distance) : String(format: "%.1fkm", distance / 1000))
+                                                            .font(.caption2)
+                                                            .foregroundColor(.secondary)
+                                                    }
                                                 }
-                                            }
-                                            
-                                            VStack(alignment: .leading, spacing: 2) {
-                                                Text(result.name)
-                                                    .font(.body)
-                                                    .foregroundColor(.primary)
-                                                    .lineLimit(1)
-                                                
-                                                Text(result.address)
+
+                                                VStack(alignment: .leading, spacing: 2) {
+                                                    Text(result.name)
+                                                        .font(.body)
+                                                        .foregroundColor(.primary)
+                                                        .lineLimit(1)
+
+                                                    Text(result.address)
+                                                        .font(.caption)
+                                                        .foregroundColor(.secondary)
+                                                        .lineLimit(2)
+                                                }
+
+                                                Spacer()
+
+                                                Image(systemName: "chevron.right")
                                                     .font(.caption)
                                                     .foregroundColor(.secondary)
-                                                    .lineLimit(2)
                                             }
-                                            
-                                            Spacer()
-                                            
-                                            Button(action: {
-                                                viewModel.selectSearchPlace(result)
-                                                searchViewModel.searchText = ""
-                                            }) {
-                                                Image(systemName: "mappin")
-                                                    .foregroundColor(.blue)
-                                                    .font(.system(size: 16))
-                                                    .frame(width: 32, height: 32)
-                                                    .background(Color.blue.opacity(0.1))
-                                                    .clipShape(Circle())
-                                            }
+                                            .padding(12)
+                                            .background(Color(.systemGray6))
+                                            .cornerRadius(12)
                                         }
-                                        .padding(12)
-                                        .background(Color(.systemGray6))
-                                        .cornerRadius(12)
+                                        .buttonStyle(PlainButtonStyle())
                                         .padding(.horizontal, 16)
                                     }
                                 }

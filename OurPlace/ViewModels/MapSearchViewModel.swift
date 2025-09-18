@@ -23,6 +23,7 @@ struct POISearchResult: Identifiable {
     let address: String
     let coordinate: CLLocationCoordinate2D
     let distance: Double?
+    let category: String?
 }
 
 // MARK: - Map Search View Model
@@ -150,7 +151,8 @@ class MapSearchViewModel: ObservableObject {
                     name: mapItem.name ?? "Unknown Place",
                     address: formatAddress(from: mapItem.placemark),
                     coordinate: mapItem.placemark.coordinate,
-                    distance: distance
+                    distance: distance,
+                    category: mapItem.pointOfInterestCategory?.rawValue
                 )
             }
             
