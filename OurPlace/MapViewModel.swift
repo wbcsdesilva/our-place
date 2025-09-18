@@ -40,8 +40,8 @@ class MapViewModel: ObservableObject {
         span: MKCoordinateSpan(latitudeDelta: 0.01, longitudeDelta: 0.01)
     )
     
-    private let locationManager = LocationManager()
-    private let coreDataManager = CoreDataManager.shared
+    private let locationManager = LocationService()
+    private let coreDataManager = CoreDataService.shared
     
     // MARK: - Computed Properties
     var userLocation: CLLocationCoordinate2D? {

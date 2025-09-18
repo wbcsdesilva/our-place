@@ -171,5 +171,5 @@ struct ProfileHeaderView: View {
 #Preview {
     SettingsTabView()
         .environmentObject(AuthViewModel())
-        .environment(\.managedObjectContext, CoreDataManager.shared.context)
+        .environment(\.managedObjectContext, CoreDataService.shared.context)
 }

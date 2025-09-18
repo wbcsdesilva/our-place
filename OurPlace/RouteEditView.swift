@@ -163,7 +163,7 @@ struct RouteEditView: View {
 
 
 #Preview {
-    let context = CoreDataManager.shared.context
+    let context = CoreDataService.shared.context
     let sampleRoute = RouteEntity(context: context, name: "Sample Route")
 
     RouteEditView(route: sampleRoute)

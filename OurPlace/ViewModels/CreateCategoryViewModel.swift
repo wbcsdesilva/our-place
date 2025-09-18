@@ -16,7 +16,7 @@ class CreateCategoryViewModel: ObservableObject {
     @Published var isLoading = false
     @Published var errorMessage: String?
     
-    private let coreDataManager = CoreDataManager.shared
+    private let coreDataManager = CoreDataService.shared
     private var isResettingForm = false
     
     var isFormValid: Bool {

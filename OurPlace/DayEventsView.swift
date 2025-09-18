@@ -19,7 +19,7 @@ struct DayEventsView: View {
     @State private var eventToDelete: DayEvent?
     @State private var showDeleteConfirmation = false
 
-    private let coreDataManager = CoreDataManager.shared
+    private let coreDataManager = CoreDataService.shared
 
     private var dateFormatter: DateFormatter {
         let formatter = DateFormatter()

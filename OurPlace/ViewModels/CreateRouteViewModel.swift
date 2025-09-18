@@ -16,7 +16,7 @@ class CreateRouteViewModel: ObservableObject {
     @Published var isCreatingRoute = false
     @Published var routeCreated = false
 
-    private let coreDataManager = CoreDataManager.shared
+    private let coreDataManager = CoreDataService.shared
     
     var canCreateRoute: Bool {
         !routeName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&

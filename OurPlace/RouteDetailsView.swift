@@ -353,7 +353,7 @@ struct RouteDetailsStopRowView: View {
 
 #Preview {
     // Create a sample route for preview
-    let context = CoreDataManager.shared.context
+    let context = CoreDataService.shared.context
     let sampleRoute = RouteEntity(context: context, name: "Sample Route")
 
     RouteDetailsView(route: sampleRoute)

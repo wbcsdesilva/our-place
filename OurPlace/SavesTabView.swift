@@ -217,5 +217,5 @@ struct EmptyRoutesView: View {
 #Preview {
     SavesTabView()
         .environmentObject(AppRouter())
-        .environment(\.managedObjectContext, CoreDataManager.shared.context)
+        .environment(\.managedObjectContext, CoreDataService.shared.context)
 }

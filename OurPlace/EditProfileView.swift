@@ -199,5 +199,5 @@ struct EditProfileView: View {
 
 #Preview {
     EditProfileView(profile: nil)
-        .environment(\.managedObjectContext, CoreDataManager.shared.context)
+        .environment(\.managedObjectContext, CoreDataService.shared.context)
 }

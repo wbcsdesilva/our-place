@@ -36,7 +36,7 @@ class MapSearchViewModel: ObservableObject {
     @Published var isLoadingPOIs = false
     
     // MARK: - Private Properties
-    private let coreDataManager = CoreDataManager.shared
+    private let coreDataManager = CoreDataService.shared
     private var searchTask: Task<Void, Never>?
     private var currentUserLocation: CLLocationCoordinate2D?
     

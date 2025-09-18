@@ -535,7 +535,7 @@ private func resolveFilePath(_ path: String) -> URL? {
 }
 
 #Preview {
-    let context = CoreDataManager.shared.context
+    let context = CoreDataService.shared.context
     let mockCategory = CategoryEntity(
         context: context,
         name: "Restaurants",

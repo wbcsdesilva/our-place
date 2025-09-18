@@ -16,7 +16,7 @@ class EventViewModel: NSObject, ObservableObject, UNUserNotificationCenterDelega
     @Published var isLoading = false
     @Published var errorMessage: String?
     
-    private let coreDataManager = CoreDataManager.shared
+    private let coreDataManager = CoreDataService.shared
     private let eventStore = EKEventStore()
     private let notificationCenter = UNUserNotificationCenter.current()
     

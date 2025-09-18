@@ -1,5 +1,5 @@
 //
-//  LocationManager.swift
+//  LocationService.swift
 //  OurPlace
 //
 //  Created by Chaniru Sandive on 2025-08-18.
@@ -8,9 +8,9 @@
 import Foundation
 import CoreLocation
 
-// MARK: - Location Manager
+// MARK: - Location Service
 
-class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate {
+class LocationService: NSObject, ObservableObject, CLLocationManagerDelegate {
     private let locationManager = CLLocationManager()
     
     @Published var userLocation: CLLocationCoordinate2D?

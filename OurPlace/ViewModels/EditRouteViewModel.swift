@@ -17,7 +17,7 @@ class EditRouteViewModel: ObservableObject {
     @Published var changesSaved = false
 
     private let route: RouteEntity
-    private let coreDataManager = CoreDataManager.shared
+    private let coreDataManager = CoreDataService.shared
 
     var canSave: Bool {
         !routeName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&

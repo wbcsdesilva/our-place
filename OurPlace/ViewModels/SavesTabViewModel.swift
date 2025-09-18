@@ -19,7 +19,7 @@ class SavesTabViewModel: ObservableObject {
     @Published var selectedRoute: RouteEntity?
     @Published var showRouteDetails = false
     
-    private let coreDataManager = CoreDataManager.shared
+    private let coreDataManager = CoreDataService.shared
     
     // Computed property for filtered pins based on search
     var filteredPins: [SavedPinEntity] {

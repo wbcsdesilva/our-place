@@ -1,5 +1,5 @@
 //
-//  CoreDataManager.swift
+//  CoreDataService.swift
 //  OurPlace
 //
 //  Created by Chaniru Sandive on 2025-08-19.
@@ -9,8 +9,8 @@ import CoreData
 import Foundation
 import SwiftUI
 
-class CoreDataManager: ObservableObject {
-    static let shared = CoreDataManager()
+class CoreDataService: ObservableObject {
+    static let shared = CoreDataService()
     
     lazy var persistentContainer: NSPersistentContainer = {
         let container = NSPersistentContainer(name: "OurPlaceModel")
