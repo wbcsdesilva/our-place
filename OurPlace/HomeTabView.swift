@@ -83,25 +83,15 @@ struct WelcomeSection: View {
     }
     
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(greeting)
-                        .font(.title3)
-                        .foregroundColor(.secondary)
-                    
-                    Text("Welcome, \(userName)!")
-                        .font(.title)
-                        .fontWeight(.bold)
-                        .foregroundColor(.primary)
-                }
-                
-                Spacer()
-                
-                Image(systemName: "house.fill")
-                    .font(.system(size: 32))
-                    .foregroundColor(.blue)
-            }
+        VStack(alignment: .leading, spacing: 6) {
+            Text(greeting)
+                .font(.subheadline)
+                .foregroundColor(.secondary)
+
+            Text("Welcome, \(userName)!")
+                .font(.title2)
+                .fontWeight(.semibold)
+                .foregroundColor(.primary)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
     }

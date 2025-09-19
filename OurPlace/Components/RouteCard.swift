@@ -65,9 +65,7 @@ struct RouteCard: View {
     }
 
     private var formattedCreatedDateStandard: String {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "dd.MM.yyyy"
-        return formatter.string(from: route.createdAt)
+        return DateFormatters.standard.string(from: route.createdAt)
     }
 }
 
@@ -117,14 +115,10 @@ struct RouteCardSmall: View {
     }
 
     private var formattedCreatedDate: String {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "dd.MM.yy"
-        return formatter.string(from: route.createdAt)
+        return DateFormatters.short.string(from: route.createdAt)
     }
 
     private var formattedCreatedDateStandard: String {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "dd.MM.yyyy"
-        return formatter.string(from: route.createdAt)
+        return DateFormatters.standard.string(from: route.createdAt)
     }
 }

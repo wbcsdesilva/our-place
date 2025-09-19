@@ -96,25 +96,17 @@ struct MapTabView: View {
         ZStack {
             MapReader { proxy in
                 Map(position: $viewModel.cameraPosition) {
+                    // Split for type-checking: user location annotation
                     if let userLocation = viewModel.userLocation {
                         Annotation("My Location", coordinate: userLocation) {
-                            Circle()
-                                .fill(Color.blue)
-                                .frame(width: 20, height: 20)
-                                .overlay(
-                                    Circle()
-                                        .stroke(Color.white, lineWidth: 3)
-                                )
-                                .shadow(radius: 3)
+                            UserLocationAnnotationView()
                         }
                     }
                     
+                    // Split for type-checking: dropped pin annotation
                     if let pin = viewModel.droppedPin {
                         Annotation("Dropped Pin", coordinate: pin.coordinate, anchor: .bottom) {
-                            Image(systemName: "mappin.and.ellipse")
-                                .foregroundColor(.red)
-                                .font(.system(size: 30))
-                                .shadow(radius: 3)
+                            DroppedPinAnnotationView()
                         }
                     }
                     
@@ -135,7 +127,7 @@ struct MapTabView: View {
                         }
                     }
                     
-                    // Navigation Route
+                    // Split for type-checking: navigation route
                     if let route = navigationViewModel.currentRoute {
                         MapPolyline(route.polyline)
                             .stroke(.blue, lineWidth: 5)
@@ -188,159 +180,13 @@ struct MapTabView: View {
                 }
             }
             
+            // Split for type-checking: search results overlay
             if searchViewModel.isSearchActive {
-                VStack {
-                    ScrollView {
-                        LazyVStack(spacing: 16) {
-                            if !searchViewModel.savedPinResults.isEmpty {
-                                VStack(alignment: .leading, spacing: 10) {
-                                    Text("Your pins")
-                                        .font(.headline)
-                                        .fontWeight(.semibold)
-                                        .padding(.horizontal, 16)
-                                    
-                                    ForEach(searchViewModel.savedPinResults) { result in
-                                        Button(action: {
-                                            let annotation = SavedPinAnnotation(savedPin: result.savedPin)
-                                            viewModel.selectSavedPin(annotation)
-                                            router.mapDeepLink = .showPinDetails(result.savedPin.objectID)
-                                            searchViewModel.searchText = ""
-                                        }) {
-                                            HStack(spacing: 12) {
-                                                if let category = result.savedPin.category {
-                                                    Circle()
-                                                        .fill(category.color)
-                                                        .frame(width: 32, height: 32)
-                                                        .overlay(
-                                                            Text(category.symbol)
-                                                                .font(.system(size: 14))
-                                                                .foregroundColor(.white)
-                                                        )
-                                                } else {
-                                                    Circle()
-                                                        .fill(Color.gray)
-                                                        .frame(width: 32, height: 32)
-                                                        .overlay(
-                                                            Image(systemName: "mappin.circle.fill")
-                                                                .font(.system(size: 14))
-                                                                .foregroundColor(.white)
-                                                        )
-                                                }
-                                                
-                                                VStack(alignment: .leading, spacing: 2) {
-                                                    Text(result.savedPin.placeName)
-                                                        .font(.body)
-                                                        .foregroundColor(.primary)
-                                                    
-                                                    if !result.savedPin.shortAddress.isEmpty {
-                                                        Text(result.savedPin.shortAddress)
-                                                            .font(.caption)
-                                                            .foregroundColor(.secondary)
-                                                            .lineLimit(1)
-                                                    }
-                                                }
-                                                
-                                                Spacer()
-                                                
-                                                Image(systemName: "chevron.right")
-                                                    .font(.caption)
-                                                    .foregroundColor(.secondary)
-                                            }
-                                            .padding(12)
-                                            .background(Color(.systemGray6))
-                                            .cornerRadius(12)
-                                        }
-                                        .buttonStyle(PlainButtonStyle())
-                                        .padding(.horizontal, 16)
-                                    }
-                                }
-                            }
-                            
-                            if searchViewModel.isLoadingPOIs {
-                                HStack {
-                                    ProgressView()
-                                    Text("Searching places...")
-                                    Spacer()
-                                }
-                                .padding()
-                            } else if !searchViewModel.poiResults.isEmpty {
-                                VStack(alignment: .leading, spacing: 10) {
-                                    Text("Places")
-                                        .font(.headline)
-                                        .fontWeight(.semibold)
-                                        .padding(.horizontal, 16)
-                                    
-                                    ForEach(searchViewModel.poiResults) { result in
-                                        Button(action: {
-                                            viewModel.selectSearchPlace(result)
-                                            searchViewModel.searchText = ""
-                                        }) {
-                                            HStack(spacing: 12) {
-                                                VStack(spacing: 4) {
-                                                    let categoryInfo = getPOICategoryInfo(for: result.category)
-                                                    Circle()
-                                                        .fill(categoryInfo.color.opacity(0.2))
-                                                        .frame(width: 32, height: 32)
-                                                        .overlay(
-                                                            Image(systemName: categoryInfo.icon)
-                                                                .font(.system(size: 14))
-                                                                .foregroundColor(categoryInfo.color)
-                                                        )
-
-                                                    if let distance = result.distance {
-                                                        Text(distance < 1000 ? String(format: "%.0fm", distance) : String(format: "%.1fkm", distance / 1000))
-                                                            .font(.caption2)
-                                                            .foregroundColor(.secondary)
-                                                    }
-                                                }
-
-                                                VStack(alignment: .leading, spacing: 2) {
-                                                    Text(result.name)
-                                                        .font(.body)
-                                                        .foregroundColor(.primary)
-                                                        .lineLimit(1)
-
-                                                    Text(result.address)
-                                                        .font(.caption)
-                                                        .foregroundColor(.secondary)
-                                                        .lineLimit(2)
-                                                }
-
-                                                Spacer()
-
-                                                Image(systemName: "chevron.right")
-                                                    .font(.caption)
-                                                    .foregroundColor(.secondary)
-                                            }
-                                            .padding(12)
-                                            .background(Color(.systemGray6))
-                                            .cornerRadius(12)
-                                        }
-                                        .buttonStyle(PlainButtonStyle())
-                                        .padding(.horizontal, 16)
-                                    }
-                                }
-                            }
-                            
-                            if !searchViewModel.hasResults && !searchViewModel.isLoadingPOIs && !searchViewModel.searchText.isEmpty {
-                                Text("No results found")
-                                    .foregroundColor(.secondary)
-                                    .padding()
-                            }
-                        }
-                        .padding(.vertical, 16)
-                    }
-                    .background(.ultraThinMaterial)
-                    .cornerRadius(16)
-                    .shadow(radius: 8)
-                    .padding(.horizontal, 16)
-                    .padding(.top, 8)
-                    .frame(maxHeight: 300)
-                    
-                    Spacer()
-                }
-                .transition(.move(edge: .top).combined(with: .opacity))
-                .animation(.easeInOut(duration: 0.2), value: searchViewModel.isSearchActive)
+                SearchResultsOverlay(
+                    searchViewModel: searchViewModel,
+                    viewModel: viewModel,
+                    router: router
+                )
             }
         }
         .searchable(text: $searchViewModel.searchText, prompt: "Search places or your pins")
@@ -377,8 +223,13 @@ struct MapTabView: View {
                 searchViewModel.setUserLocation(userLocation)
             }
         }
-        .onChange(of: viewModel.userLocation) { _, newLocation in
-            if let location = newLocation {
+        .onChange(of: viewModel.userLocation?.latitude) { _, _ in
+            if let location = viewModel.userLocation {
+                searchViewModel.setUserLocation(location)
+            }
+        }
+        .onChange(of: viewModel.userLocation?.longitude) { _, _ in
+            if let location = viewModel.userLocation {
                 searchViewModel.setUserLocation(location)
             }
         }
@@ -658,6 +509,289 @@ struct TransportModeButton: View {
     }
 }
 
+
+// MARK: - Type-checking optimized subviews
+
+// Split for type-checking: user location annotation view
+struct UserLocationAnnotationView: View {
+    var body: some View {
+        Circle()
+            .fill(Color.blue)
+            .frame(width: 20, height: 20)
+            .overlay(
+                Circle()
+                    .stroke(Color.white, lineWidth: 3)
+            )
+            .shadow(radius: 3)
+    }
+}
+
+// Split for type-checking: dropped pin annotation view
+struct DroppedPinAnnotationView: View {
+    var body: some View {
+        Image(systemName: "mappin.and.ellipse")
+            .foregroundColor(.red)
+            .font(.system(size: 30))
+            .shadow(radius: 3)
+    }
+}
+
+// Split for type-checking: search results overlay
+struct SearchResultsOverlay: View {
+    @ObservedObject var searchViewModel: MapSearchViewModel
+    @ObservedObject var viewModel: MapViewModel
+    var router: AppRouter
+
+    var body: some View {
+        VStack {
+            ScrollView {
+                LazyVStack(spacing: 16) {
+                    // Split for type-checking: saved pins section
+                    if !searchViewModel.savedPinResults.isEmpty {
+                        SavedPinResultsSection(
+                            savedPinResults: searchViewModel.savedPinResults,
+                            viewModel: viewModel,
+                            router: router,
+                            searchViewModel: searchViewModel
+                        )
+                    }
+
+                    // Split for type-checking: POI loading/results section
+                    Group {
+                        if searchViewModel.isLoadingPOIs {
+                            POILoadingView()
+                        } else if !searchViewModel.poiResults.isEmpty {
+                            POIResultsSection(
+                                poiResults: searchViewModel.poiResults,
+                                viewModel: viewModel,
+                                searchViewModel: searchViewModel
+                            )
+                        }
+                    }
+
+                    // Split for type-checking: no results message
+                    if !searchViewModel.hasResults && !searchViewModel.isLoadingPOIs && !searchViewModel.searchText.isEmpty {
+                        NoResultsView()
+                    }
+                }
+                .padding(.vertical, 16)
+            }
+            .background(.ultraThinMaterial)
+            .cornerRadius(16)
+            .shadow(radius: 8)
+            .padding(.horizontal, 16)
+            .padding(.top, 8)
+            .frame(maxHeight: 300)
+
+            Spacer()
+        }
+        .transition(.move(edge: .top).combined(with: .opacity))
+        .animation(.easeInOut(duration: 0.2), value: searchViewModel.isSearchActive)
+    }
+}
+
+// Split for type-checking: saved pin results section
+struct SavedPinResultsSection: View {
+    let savedPinResults: [SavedPinSearchResult]
+    @ObservedObject var viewModel: MapViewModel
+    var router: AppRouter
+    @ObservedObject var searchViewModel: MapSearchViewModel
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text("Your pins")
+                .font(.headline)
+                .fontWeight(.semibold)
+                .padding(.horizontal, 16)
+
+            ForEach(savedPinResults) { result in
+                SavedPinResultRow(
+                    result: result,
+                    onTap: {
+                        let annotation = SavedPinAnnotation(savedPin: result.savedPin)
+                        viewModel.selectSavedPin(annotation)
+                        router.mapDeepLink = .showPinDetails(result.savedPin.objectID)
+                        searchViewModel.searchText = ""
+                    }
+                )
+            }
+        }
+    }
+}
+
+// Split for type-checking: saved pin result row
+struct SavedPinResultRow: View {
+    let result: SavedPinSearchResult
+    let onTap: () -> Void
+
+    var body: some View {
+        Button(action: onTap) {
+            HStack(spacing: 12) {
+                // Split for type-checking: pin category icon
+                Group {
+                    if let category = result.savedPin.category {
+                        Circle()
+                            .fill(category.color)
+                            .frame(width: 32, height: 32)
+                            .overlay(
+                                Text(category.symbol)
+                                    .font(.system(size: 14))
+                                    .foregroundColor(.white)
+                            )
+                    } else {
+                        Circle()
+                            .fill(Color.gray)
+                            .frame(width: 32, height: 32)
+                            .overlay(
+                                Image(systemName: "mappin.circle.fill")
+                                    .font(.system(size: 14))
+                                    .foregroundColor(.white)
+                            )
+                    }
+                }
+
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(result.savedPin.placeName)
+                        .font(.body)
+                        .foregroundColor(.primary)
+
+                    if !result.savedPin.shortAddress.isEmpty {
+                        Text(result.savedPin.shortAddress)
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                            .lineLimit(1)
+                    }
+                }
+
+                Spacer()
+
+                Image(systemName: "chevron.right")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+            }
+            .padding(12)
+            .background(Color(.systemGray6))
+            .cornerRadius(12)
+        }
+        .buttonStyle(PlainButtonStyle())
+        .padding(.horizontal, 16)
+    }
+}
+
+// Split for type-checking: POI loading view
+struct POILoadingView: View {
+    var body: some View {
+        HStack {
+            ProgressView()
+            Text("Searching places...")
+            Spacer()
+        }
+        .padding()
+    }
+}
+
+// Split for type-checking: POI results section
+struct POIResultsSection: View {
+    let poiResults: [POISearchResult]
+    @ObservedObject var viewModel: MapViewModel
+    @ObservedObject var searchViewModel: MapSearchViewModel
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text("Places")
+                .font(.headline)
+                .fontWeight(.semibold)
+                .padding(.horizontal, 16)
+
+            ForEach(poiResults) { result in
+                POIResultRow(
+                    result: result,
+                    onTap: {
+                        viewModel.selectSearchPlace(result)
+                        searchViewModel.searchText = ""
+                    }
+                )
+            }
+        }
+    }
+}
+
+// Split for type-checking: POI result row
+struct POIResultRow: View {
+    let result: POISearchResult
+    let onTap: () -> Void
+
+    var body: some View {
+        Button(action: onTap) {
+            HStack(spacing: 12) {
+                POIIconAndDistance(result: result)
+
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(result.name)
+                        .font(.body)
+                        .foregroundColor(.primary)
+                        .lineLimit(1)
+
+                    Text(result.address)
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                        .lineLimit(2)
+                }
+
+                Spacer()
+
+                Image(systemName: "chevron.right")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+            }
+            .padding(12)
+            .background(Color(.systemGray6))
+            .cornerRadius(12)
+        }
+        .buttonStyle(PlainButtonStyle())
+        .padding(.horizontal, 16)
+    }
+}
+
+// Split for type-checking: POI icon and distance
+struct POIIconAndDistance: View {
+    let result: POISearchResult
+
+    var body: some View {
+        VStack(spacing: 4) {
+            // Split for type-checking: precompute category info
+            let categoryInfo: POICategoryInfo = getPOICategoryInfo(for: result.category)
+
+            Circle()
+                .fill(categoryInfo.color.opacity(0.2))
+                .frame(width: 32, height: 32)
+                .overlay(
+                    Image(systemName: categoryInfo.icon)
+                        .font(.system(size: 14))
+                        .foregroundColor(categoryInfo.color)
+                )
+
+            if let distance = result.distance {
+                let distanceText: String = distance < 1000 ?
+                    String(format: "%.0fm", distance) :
+                    String(format: "%.1fkm", distance / 1000)
+
+                Text(distanceText)
+                    .font(.caption2)
+                    .foregroundColor(.secondary)
+            }
+        }
+    }
+}
+
+// Split for type-checking: no results view
+struct NoResultsView: View {
+    var body: some View {
+        Text("No results found")
+            .foregroundColor(.secondary)
+            .padding()
+    }
+}
 
 #Preview {
     MapTabView()

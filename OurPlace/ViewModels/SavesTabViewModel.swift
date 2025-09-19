@@ -62,8 +62,6 @@ class SavesTabViewModel: ObservableObject {
     
     // Format date for display
     func formatDate(_ date: Date) -> String {
-        let formatter = DateFormatter()
-        formatter.dateStyle = .medium
-        return formatter.string(from: date)
+        return DateFormatters.relative.string(from: date)
     }
 }

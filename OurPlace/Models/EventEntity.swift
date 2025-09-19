@@ -71,9 +71,7 @@ public class EventEntity: NSManagedObject {
     var formattedDateTime: String {
         guard let startDate = startDate else { return "Unknown date" }
 
-        let formatter = DateFormatter()
-        formatter.dateFormat = "dd.MM.yyyy • hh:mma"
-        return formatter.string(from: startDate)
+        return DateFormatters.eventDateTime.string(from: startDate)
     }
     
     var reminderTime: Date {

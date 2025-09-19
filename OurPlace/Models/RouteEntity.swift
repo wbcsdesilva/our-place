@@ -31,9 +31,7 @@ public class RouteEntity: NSManagedObject {
     
     /// Get formatted creation date
     var formattedCreatedAt: String {
-        let formatter = DateFormatter()
-        formatter.dateStyle = .medium
-        return formatter.string(from: createdAt)
+        return DateFormatters.relative.string(from: createdAt)
     }
     
     /// Get stop count

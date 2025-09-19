@@ -14,12 +14,17 @@ enum AuthScreen {
 
 struct AuthWrapperView: View {
     @EnvironmentObject var authVM: AuthViewModel
+    @EnvironmentObject var router: AppRouter
     @State private var currentAuthScreen: AuthScreen = .login
-    
+
     var body: some View {
         Group {
             if authVM.user != nil {
                 MainTabView()
+                    .onAppear {
+                        // Always reset to home tab when user logs in
+                        router.selectedTab = .home
+                    }
             } else {
                 NavigationStack {
                     switch currentAuthScreen {

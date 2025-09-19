@@ -1,5 +1,5 @@
 //
-//  FaceIDManagerTests.swift
+//  FaceIDServiceTests.swift
 //  OurPlaceTests
 //
 //  Created by Chaniru Sandive on 2025-08-16.
@@ -9,12 +9,12 @@ import Testing
 @testable import OurPlace
 import LocalAuthentication
 
-struct FaceIDManagerTests {
+struct FaceIDServiceTests {
     
     // Helper function to create a test manager with unique keychain service
-    private func createTestManager() -> FaceIDManager {
+    private func createTestManager() -> FaceIDService {
         let timestamp = Date().timeIntervalSince1970
-        return FaceIDManager(
+        return FaceIDService(
             keychainService: "com.test.OurPlace.faceid.\(timestamp)",
             keychainAccount: "testCredentials"
         )
@@ -23,7 +23,7 @@ struct FaceIDManagerTests {
     // MARK: - Initialization Tests
     
     @Test func testInitialization() async throws {
-        let manager = FaceIDManager()
+        let manager = FaceIDService()
         
         #expect(manager.isFaceIDAvailable == false || manager.isFaceIDAvailable == true, "Face ID availability should be determined")
         #expect(manager.isAuthenticated == false, "Initial authentication state should be false")
@@ -94,7 +94,7 @@ struct FaceIDManagerTests {
     // MARK: - Error Message Tests
     
     @Test func testFaceIDErrorMessages() async throws {
-        let manager = FaceIDManager()
+        let manager = FaceIDService()
         
         // Test various error scenarios
         let testErrors: [(LAError, String)] = [
@@ -160,7 +160,7 @@ struct FaceIDManagerTests {
 
 // MARK: - Helper Extensions for Testing
 
-extension FaceIDManager {
+extension FaceIDService {
     // Make private methods accessible for testing
     func getFaceIDErrorMessage(from error: Error) -> String {
         let nsError = error as NSError

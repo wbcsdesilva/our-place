@@ -7,6 +7,7 @@
 
 import SwiftUI
 import CoreData
+import UserNotifications
 
 struct MainTabView: View {
     @EnvironmentObject var authVM: AuthViewModel
@@ -98,9 +99,15 @@ struct MainTabView: View {
             let tabBarAppearance = UITabBarAppearance()
             tabBarAppearance.configureWithDefaultBackground()
             tabBarAppearance.backgroundColor = UIColor.systemBackground.withAlphaComponent(0.8)
-            
+
             UITabBar.appearance().standardAppearance = tabBarAppearance
             UITabBar.appearance().scrollEdgeAppearance = tabBarAppearance
+        }
+        .onReceive(NotificationCenter.default.publisher(for: UIApplication.didBecomeActiveNotification)) { _ in
+            // Clear notification badge when app becomes active
+            Task {
+                try? await UNUserNotificationCenter.current().setBadgeCount(0)
+            }
         }
     }
 }

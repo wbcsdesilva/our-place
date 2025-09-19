@@ -71,7 +71,7 @@ struct RouteDetailsView: View {
                     Button(action: {
                         showNavigationView = true
                     }) {
-                        Image(systemName: "location.fill")
+                        Image(systemName: "arrow.trianglehead.turn.up.right.diamond.fill")
                             .font(.system(size: 20, weight: .medium))
                             .foregroundColor(.white)
                             .frame(width: 56, height: 56)
@@ -275,7 +275,6 @@ struct StopsListSection: View {
             Text("Stops")
                 .font(.headline)
                 .foregroundColor(.primary)
-                .padding(.horizontal, 16)
 
             LazyVStack(spacing: 8) {
                 ForEach(Array(stops.enumerated()), id: \.element.id) { index, stop in
@@ -284,7 +283,6 @@ struct StopsListSection: View {
                             savedPin: savedPin,
                             order: index + 1
                         )
-                        .padding(.horizontal, 16)
                     }
                 }
             }

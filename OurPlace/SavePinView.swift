@@ -17,6 +17,7 @@ struct SavePinView: View {
     @State private var showDocumentPicker = false
     @State private var navigationPath = NavigationPath()
     @State private var selectedCategoryID: NSManagedObjectID?
+    @State private var showCategoryPicker = false
     @Environment(\.dismiss) private var dismiss
     @Environment(\.managedObjectContext) private var context
     @FetchRequest(
@@ -28,6 +29,11 @@ struct SavePinView: View {
     private var selectedCategory: CategoryEntity? {
         guard let selectedCategoryID = selectedCategoryID else { return nil }
         return context.object(with: selectedCategoryID) as? CategoryEntity
+    }
+
+    private var isFormValid: Bool {
+        !viewModel.editedPlaceName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
+        selectedCategory != nil
     }
     
     let onSaveSuccess: () -> Void
@@ -73,8 +79,8 @@ struct SavePinView: View {
                     CategorySection(
                         categories: Array(categories),
                         selectedCategory: selectedCategory,
-                        onCategorySelected: { category in
-                            selectedCategoryID = category.objectID
+                        onCategorySelected: { _ in
+                            showCategoryPicker = true
                         },
                         onCreateCategory: {
                             navigationPath.append(SaveFlowDestination.createCategory)
@@ -107,8 +113,9 @@ struct SavePinView: View {
                             dismiss()
                         },
                         isLoading: viewModel.isLoading,
-                        backgroundColor: .blue
+                        backgroundColor: isFormValid ? .blue : .gray
                     )
+                    .disabled(!isFormValid)
                     .padding(.top, 8)
                     
                     // Error Message
@@ -141,6 +148,20 @@ struct SavePinView: View {
                         navigationPath.removeLast()
                     })
                 }
+            }
+            .fullScreenCover(isPresented: $showCategoryPicker) {
+                CategoryPickerView(
+                    categories: Array(categories),
+                    selectedCategory: selectedCategory,
+                    onCategorySelected: { (category: CategoryEntity) in
+                        selectedCategoryID = category.objectID
+                        showCategoryPicker = false
+                    },
+                    onCreateCategory: {
+                        showCategoryPicker = false
+                        navigationPath.append(SaveFlowDestination.createCategory)
+                    }
+                )
             }
         }
     }
@@ -288,18 +309,7 @@ struct CategorySection: View {
                 }
             }
 
-            Menu {
-                ForEach(categories, id: \.id) { category in
-                    Button(category.displayText) {
-                        onCategorySelected(category)
-                    }
-                }
-
-                if categories.isEmpty {
-                    Text("No categories available")
-                        .foregroundColor(.secondary)
-                }
-            } label: {
+            Button(action: { onCategorySelected(CategoryEntity()) }) {
                 HStack {
                     if let selectedCategory = selectedCategory {
                         Text(selectedCategory.displayText)
@@ -321,7 +331,7 @@ struct CategorySection: View {
 
                     Spacer()
 
-                    Image(systemName: "chevron.down")
+                    Image(systemName: "chevron.right")
                         .foregroundColor(.secondary)
                         .font(.system(size: 14))
                 }
@@ -330,6 +340,7 @@ struct CategorySection: View {
                 .background(.regularMaterial)
                 .cornerRadius(12)
             }
+            .buttonStyle(PlainButtonStyle())
         }
     }
 }
@@ -649,6 +660,131 @@ private func determineAttachmentType(from url: URL) -> AttachmentType {
         return .archive
     default:
         return .other
+    }
+}
+
+// MARK: - Category Picker View
+
+struct CategoryPickerView: View {
+    let categories: [CategoryEntity]
+    let selectedCategory: CategoryEntity?
+    let onCategorySelected: (CategoryEntity) -> Void
+    let onCreateCategory: () -> Void
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        NavigationStack {
+            VStack(spacing: 0) {
+                if categories.isEmpty {
+                    VStack(spacing: 24) {
+                        Spacer()
+
+                        Image(systemName: "tag")
+                            .font(.system(size: 48))
+                            .foregroundColor(.secondary)
+
+                        Text("No Categories Available")
+                            .font(.title2)
+                            .fontWeight(.semibold)
+                            .foregroundColor(.primary)
+
+                        Text("Create your first category to organize your pins")
+                            .font(.subheadline)
+                            .foregroundColor(.secondary)
+                            .multilineTextAlignment(.center)
+
+                        Button(action: onCreateCategory) {
+                            HStack {
+                                Image(systemName: "plus")
+                                Text("Create Category")
+                            }
+                            .foregroundColor(.white)
+                            .padding(.horizontal, 20)
+                            .padding(.vertical, 12)
+                            .background(Color.blue)
+                            .cornerRadius(8)
+                        }
+
+                        Spacer()
+                    }
+                    .padding(.horizontal, 20)
+                } else {
+                    ScrollView {
+                        LazyVStack(spacing: 12) {
+                            ForEach(categories, id: \.id) { category in
+                                CategoryPickerRow(
+                                    category: category,
+                                    isSelected: selectedCategory?.objectID == category.objectID,
+                                    onTap: {
+                                        onCategorySelected(category)
+                                    }
+                                )
+                            }
+                        }
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 20)
+                    }
+                }
+            }
+            .navigationTitle("Select Category")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button("Cancel") {
+                        dismiss()
+                    }
+                    .foregroundColor(.blue)
+                }
+            }
+        }
+    }
+}
+
+struct CategoryPickerRow: View {
+    let category: CategoryEntity
+    let isSelected: Bool
+    let onTap: () -> Void
+
+    var body: some View {
+        Button(action: onTap) {
+            HStack(spacing: 16) {
+                // Category icon with color
+                Circle()
+                    .fill(category.color)
+                    .frame(width: 44, height: 44)
+                    .overlay(
+                        Text(category.symbol)
+                            .font(.system(size: 18))
+                            .foregroundColor(.white)
+                    )
+
+                // Category name
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(category.name)
+                        .font(.body)
+                        .fontWeight(.medium)
+                        .foregroundColor(.primary)
+                }
+
+                Spacer()
+
+                // Selection indicator
+                if isSelected {
+                    Image(systemName: "checkmark.circle.fill")
+                        .foregroundColor(.blue)
+                        .font(.system(size: 20))
+                }
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 12)
+            .background(isSelected ? Color.blue.opacity(0.1) : Color(.systemGray6))
+            .cornerRadius(12)
+            .overlay(
+                RoundedRectangle(cornerRadius: 12)
+                    .stroke(isSelected ? Color.blue : Color.clear, lineWidth: 2)
+            )
+        }
+        .buttonStyle(PlainButtonStyle())
     }
 }
 

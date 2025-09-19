@@ -83,11 +83,7 @@ struct EventsTabView: View {
     private var upcomingEvents: FetchedResults<EventEntity>
 
     private let calendar = Calendar.current
-    private let dateFormatter: DateFormatter = {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "MMMM yyyy"
-        return formatter
-    }()
+    private let dateFormatter = DateFormatters.monthYear
 
     private func getDatesWithEvents(for month: Date) -> Set<Date> {
         let calendar = Calendar.current
@@ -138,12 +134,10 @@ struct EventsTabView: View {
         .searchable(text: $searchText, prompt: "Search events")
         .toolbar {
             ToolbarItem(placement: .navigationBarTrailing) {
-                Button(action: {
+                Button("Add") {
                     showAddEvent = true
-                }) {
-                    Image(systemName: "plus")
-                        .foregroundColor(.blue)
                 }
+                .foregroundColor(.blue)
             }
         }
         .fullScreenCover(isPresented: $showAddEvent) {
@@ -178,16 +172,12 @@ struct EventsTabView: View {
                 let ekEvents = eventKitService.fetchEvents(from: now, to: futureDate)
 
                 let externalEvents = ekEvents.map { ekEvent -> UpcomingEvent in
-                    let formatter = DateFormatter()
-                    formatter.dateStyle = .none
-                    formatter.timeStyle = .short
-
-                    let timeRange = "\(formatter.string(from: ekEvent.startDate)) - \(formatter.string(from: ekEvent.endDate))"
+                    let formattedDateTime = DateFormatters.eventDateTime.string(from: ekEvent.startDate)
 
                     return .external(
                         title: ekEvent.title ?? "Unknown Event",
                         location: ekEvent.location,
-                        formattedTimeRange: timeRange,
+                        formattedTimeRange: formattedDateTime,
                         isAllDay: ekEvent.isAllDay,
                         ekIdentifier: ekEvent.eventIdentifier
                     )
@@ -213,11 +203,7 @@ struct CalendarView: View {
     @ObservedObject var eventViewModel: EventViewModel
     
     private let calendar = Calendar.current
-    private let dateFormatter: DateFormatter = {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "MMMM yyyy"
-        return formatter
-    }()
+    private let dateFormatter = DateFormatters.monthYear
     
     var body: some View {
         VStack(spacing: 16) {

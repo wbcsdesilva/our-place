@@ -31,18 +31,12 @@ struct DayEvent: Identifiable {
     }
 
     var formattedTimeRange: String {
-        let formatter = DateFormatter()
-        formatter.timeStyle = .short
-
         if isAllDay {
             return "All day"
         }
 
-        if let end = end {
-            return "\(formatter.string(from: start)) - \(formatter.string(from: end))"
-        } else {
-            return formatter.string(from: start)
-        }
+        // Use the same date-time format as EventsTabView for consistency
+        return DateFormatters.eventDateTime.string(from: start)
     }
 }
 

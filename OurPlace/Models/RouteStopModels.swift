@@ -1,5 +1,5 @@
 //
-//  TempRouteModels.swift
+//  RouteStopModels.swift
 //  OurPlace
 //
 //  Created by Chaniru Sandive on 2025-09-15.
@@ -7,7 +7,7 @@
 
 import Foundation
 
-// Temporary model for route creation workflow
+// Model for route creation and editing workflow
 struct RouteStop: Identifiable, Equatable {
     let id = UUID()
     let savedPin: SavedPinEntity

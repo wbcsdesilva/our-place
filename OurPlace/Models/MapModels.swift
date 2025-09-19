@@ -25,10 +25,3 @@ struct NearbyPlace: Identifiable {
 
 // MARK: - Extensions
 
-extension CLLocationCoordinate2D: @retroactive Equatable {
-    public static func == (lhs: CLLocationCoordinate2D, rhs: CLLocationCoordinate2D) -> Bool {
-        let epsilon = 1e-10
-        return abs(lhs.latitude - rhs.latitude) < epsilon && 
-               abs(lhs.longitude - rhs.longitude) < epsilon
-    }
-}

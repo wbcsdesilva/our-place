@@ -17,7 +17,7 @@ class AuthViewModel: ObservableObject {
     @Published var isFaceIDAvailable = false
     
     private var authStateListener: AuthStateDidChangeListenerHandle?
-    private let faceIDManager = FaceIDManager()
+    private let faceIDService = FaceIDService()
     
     init() {
         setupAuthStateListener()
@@ -169,7 +169,7 @@ class AuthViewModel: ObservableObject {
         do {
             try Auth.auth().signOut()
             // Reset Face ID authentication state and refresh availability
-            faceIDManager.resetAuthenticationState()
+            faceIDService.resetAuthenticationState()
             // Add a small delay to ensure state is reset, then refresh availability
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
                 self.checkFaceIDAvailability()
@@ -182,10 +182,10 @@ class AuthViewModel: ObservableObject {
     // MARK: - Face ID Methods
     
     private func checkFaceIDAvailability() {
-        faceIDManager.refreshAvailability()
+        faceIDService.refreshAvailability()
         
-        let deviceSupported = faceIDManager.isFaceIDAvailable
-        let hasCredentials = faceIDManager.retrieveCredentials() != nil
+        let deviceSupported = faceIDService.isFaceIDAvailable
+        let hasCredentials = faceIDService.retrieveCredentials() != nil
         isFaceIDAvailable = deviceSupported && hasCredentials
     }
     
@@ -195,7 +195,7 @@ class AuthViewModel: ObservableObject {
             errorMessage = nil
         }
         
-        guard let credentials = faceIDManager.retrieveCredentials() else {
+        guard let credentials = faceIDService.retrieveCredentials() else {
             await MainActor.run {
                 isLoading = false
                 errorMessage = "No saved credentials found. Please log in with email and password first."
@@ -203,20 +203,20 @@ class AuthViewModel: ObservableObject {
             return
         }
         
-        let success = await faceIDManager.authenticateWithFaceID()
+        let success = await faceIDService.authenticateWithFaceID()
         
         await MainActor.run {
             if success {
                 self.login(email: credentials.email, password: credentials.password)
             } else {
                 self.isLoading = false
-                self.errorMessage = faceIDManager.errorMessage ?? "Face ID authentication failed"
+                self.errorMessage = faceIDService.errorMessage ?? "Face ID authentication failed"
             }
         }
     }
     
     func saveCredentialsForFaceID(email: String, password: String) {
-        let success = faceIDManager.storeCredentials(email: email, password: password)
+        let success = faceIDService.storeCredentials(email: email, password: password)
         if success {
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
                 self.checkFaceIDAvailability()
@@ -225,7 +225,7 @@ class AuthViewModel: ObservableObject {
     }
     
     func clearFaceIDCredentials() {
-        _ = faceIDManager.clearCredentials()
+        _ = faceIDService.clearCredentials()
         checkFaceIDAvailability()
     }
     

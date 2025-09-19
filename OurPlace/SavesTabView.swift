@@ -45,16 +45,15 @@ struct SavesTabView: View {
             .searchable(text: $viewModel.searchText, prompt: "Search")
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    Button(action: {
+                    Button("Add") {
                         if viewModel.selectedSegment == 0 {
                             // TODO: Add pin functionality
                         } else {
                             viewModel.showCreateRoute = true
                         }
-                    }) {
-                        Image(systemName: "plus")
-                            .foregroundColor(.blue)
                     }
+                    .foregroundColor(viewModel.selectedSegment == 0 ? .gray : .blue)
+                    .disabled(viewModel.selectedSegment == 0) // Only enable when routes segment is selected
                 }
             }
             .onAppear {

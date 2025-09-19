@@ -33,20 +33,10 @@ class EventViewModel: NSObject, ObservableObject, UNUserNotificationCenterDelega
     }
     
     private func requestCalendarPermission() {
-        if #available(iOS 17.0, *) {
-            eventStore.requestFullAccessToEvents { [weak self] granted, error in
-                DispatchQueue.main.async {
-                    if let error = error {
-                        self?.errorMessage = "Calendar access error: \(error.localizedDescription)"
-                    }
-                }
-            }
-        } else {
-            eventStore.requestAccess(to: .event) { [weak self] granted, error in
-                DispatchQueue.main.async {
-                    if let error = error {
-                        self?.errorMessage = "Calendar access error: \(error.localizedDescription)"
-                    }
+        eventStore.requestFullAccessToEvents { [weak self] granted, error in
+            DispatchQueue.main.async {
+                if let error = error {
+                    self?.errorMessage = "Calendar access error: \(error.localizedDescription)"
                 }
             }
         }
@@ -192,11 +182,7 @@ class EventViewModel: NSObject, ObservableObject, UNUserNotificationCenterDelega
     
     // Show notifications even when app is in foreground
     nonisolated func userNotificationCenter(_ center: UNUserNotificationCenter, willPresent notification: UNNotification, withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void) {
-        if #available(iOS 14.0, *) {
-            completionHandler([.banner, .sound, .badge])
-        } else {
-            completionHandler([.alert, .sound, .badge])
-        }
+        completionHandler([.banner, .sound, .badge])
     }
     
     // Handle notification taps
@@ -209,12 +195,8 @@ class EventViewModel: NSObject, ObservableObject, UNUserNotificationCenterDelega
     
     // Clear app badge count
     func clearBadgeCount() {
-        if #available(iOS 16.0, *) {
-            Task {
-                try? await UNUserNotificationCenter.current().setBadgeCount(0)
-            }
-        } else {
-            UIApplication.shared.applicationIconBadgeNumber = 0
+        Task {
+            try? await UNUserNotificationCenter.current().setBadgeCount(0)
         }
     }
 

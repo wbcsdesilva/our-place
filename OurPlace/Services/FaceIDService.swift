@@ -1,5 +1,5 @@
 //
-//  FaceIDManager.swift
+//  FaceIDService.swift
 //  OurPlace
 //
 //  Created by Chaniru Sandive on 2025-08-16.
@@ -9,7 +9,7 @@ import Foundation
 import LocalAuthentication
 import Security
 
-class FaceIDManager: ObservableObject {
+class FaceIDService: ObservableObject {
     @Published var isFaceIDAvailable = false
     @Published var isAuthenticated = false
     @Published var errorMessage: String?

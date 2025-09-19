@@ -21,10 +21,11 @@ struct DayEventsView: View {
 
     private let coreDataManager = CoreDataService.shared
 
-    private var dateFormatter: DateFormatter {
-        let formatter = DateFormatter()
-        formatter.dateStyle = .full
-        return formatter
+    private var dateFormatter = DateFormatters.fullDate
+
+    init(date: Date, eventViewModel: EventViewModel) {
+        self.date = date
+        self.eventViewModel = eventViewModel
     }
 
     private var dayBounds: (start: Date, end: Date) {

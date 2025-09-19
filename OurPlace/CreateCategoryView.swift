@@ -81,10 +81,9 @@ struct CreateCategoryView: View {
                         }
                     },
                     isLoading: viewModel.isLoading,
-                    backgroundColor: .blue
+                    backgroundColor: (viewModel.isFormValid && !viewModel.isLoading) ? .blue : .gray
                 )
                 .disabled(!viewModel.isFormValid || viewModel.isLoading)
-                .opacity(viewModel.isFormValid && !viewModel.isLoading ? 1.0 : 0.6)
                 .padding(.horizontal, 20)
                 .padding(.bottom, 34) // Safe area padding
             }

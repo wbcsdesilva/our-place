@@ -69,9 +69,7 @@ struct SavedPinCard: View {
             return formatter(pin.createdAt)
         } else {
             // Default formatting
-            let formatter = DateFormatter()
-            formatter.dateFormat = "dd.MM.yyyy"
-            return formatter.string(from: pin.createdAt)
+            return DateFormatters.standard.string(from: pin.createdAt)
         }
     }
 }
@@ -134,9 +132,7 @@ struct SavedPinCardSmall: View {
     }
 
     private var formattedCreatedDate: String {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "dd.MM.yy"
-        return formatter.string(from: pin.createdAt)
+        return DateFormatters.short.string(from: pin.createdAt)
     }
 }
 

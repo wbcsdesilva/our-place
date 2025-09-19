@@ -35,31 +35,18 @@ class EventKitService: ObservableObject {
     }
 
     private func checkCurrentAccessStatus() {
-        if #available(iOS 17.0, *) {
-            hasCalendarAccess = EKEventStore.authorizationStatus(for: .event) == .fullAccess
-        } else {
-            hasCalendarAccess = EKEventStore.authorizationStatus(for: .event) == .authorized
-        }
+        hasCalendarAccess = EKEventStore.authorizationStatus(for: .event) == .fullAccess
     }
 
     func requestAccessIfNeeded() async -> Bool {
         let currentStatus = EKEventStore.authorizationStatus(for: .event)
 
         // If already authorized, return true
-        if #available(iOS 17.0, *) {
-            if currentStatus == .fullAccess {
-                await MainActor.run {
-                    hasCalendarAccess = true
-                }
-                return true
+        if currentStatus == .fullAccess {
+            await MainActor.run {
+                hasCalendarAccess = true
             }
-        } else {
-            if currentStatus == .authorized {
-                await MainActor.run {
-                    hasCalendarAccess = true
-                }
-                return true
-            }
+            return true
         }
 
         // If denied, return false
@@ -72,12 +59,7 @@ class EventKitService: ObservableObject {
 
         // Request access
         do {
-            let granted: Bool
-            if #available(iOS 17.0, *) {
-                granted = try await eventStore.requestFullAccessToEvents()
-            } else {
-                granted = try await eventStore.requestWriteOnlyAccessToEvents()
-            }
+            let granted = try await eventStore.requestFullAccessToEvents()
 
             await MainActor.run {
                 hasCalendarAccess = granted
@@ -110,7 +92,6 @@ class EventKitService: ObservableObject {
 }
 
 extension EKEventStore {
-    @available(iOS 17.0, *)
     func requestFullAccessToEvents() async throws -> Bool {
         return try await withCheckedThrowingContinuation { continuation in
             requestFullAccessToEvents { granted, error in

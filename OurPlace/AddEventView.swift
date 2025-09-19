@@ -23,6 +23,7 @@ struct AddEventView: View {
     @State private var isLoading = false
     @State private var showError = false
     @State private var errorMessage = ""
+    @State private var showPinPicker = false
 
     private let reminderOptions: [Int16] = [5, 10, 15, 30, 60]
     private let allDayReminderOptions = [
@@ -53,35 +54,52 @@ struct AddEventView: View {
                         }
                         .padding(.vertical, 8)
                     } else {
-                        Picker("Select Pin", selection: $selectedPin) {
-                            Text("Choose a location")
-                                .tag(nil as SavedPinEntity?)
-
-                            ForEach(savesViewModel.savedPins, id: \.id) { pin in
-                                HStack {
-                                    if let category = pin.category {
+                        Button(action: {
+                            showPinPicker = true
+                        }) {
+                            HStack {
+                                if let selectedPin = selectedPin {
+                                    if let category = selectedPin.category {
                                         Circle()
                                             .fill(category.color)
-                                            .frame(width: 20, height: 20)
+                                            .frame(width: 24, height: 24)
                                             .overlay(
                                                 Text(category.symbol)
-                                                    .font(.system(size: 10))
+                                                    .font(.system(size: 12))
+                                                    .foregroundColor(.white)
+                                            )
+                                    } else {
+                                        Circle()
+                                            .fill(Color.gray)
+                                            .frame(width: 24, height: 24)
+                                            .overlay(
+                                                Image(systemName: "mappin.circle.fill")
+                                                    .font(.system(size: 12))
                                                     .foregroundColor(.white)
                                             )
                                     }
 
                                     VStack(alignment: .leading, spacing: 2) {
-                                        Text(pin.placeName)
+                                        Text(selectedPin.placeName)
                                             .font(.body)
-                                        Text(pin.shortAddress)
+                                            .foregroundColor(.primary)
+                                        Text(selectedPin.shortAddress)
                                             .font(.caption)
                                             .foregroundColor(.secondary)
                                     }
+                                } else {
+                                    Text("Choose a location")
+                                        .foregroundColor(.secondary)
                                 }
-                                .tag(pin as SavedPinEntity?)
+
+                                Spacer()
+
+                                Image(systemName: "chevron.right")
+                                    .foregroundColor(.secondary)
+                                    .font(.caption)
                             }
                         }
-                        .pickerStyle(.navigationLink)
+                        .buttonStyle(PlainButtonStyle())
                         .accessibilityLabel("Event location")
                         .accessibilityValue(selectedPin?.placeName ?? "No location selected")
                         .accessibilityHint("Choose a saved location for your event")
@@ -142,7 +160,7 @@ struct AddEventView: View {
                                     .tag(option.0)
                             }
                         }
-                        .pickerStyle(.navigationLink)
+                        .pickerStyle(.menu)
                         .accessibilityLabel("Reminder timing")
                         .accessibilityValue(allDayReminderOptions.first { $0.0 == allDayReminderDays }?.1 ?? "")
                         .accessibilityHint("Choose when to be reminded about your all-day event")
@@ -158,7 +176,7 @@ struct AddEventView: View {
                                 }
                             }
                         }
-                        .pickerStyle(.navigationLink)
+                        .pickerStyle(.menu)
                         .accessibilityLabel("Reminder timing")
                         .accessibilityValue("\(reminderMinutes) minutes before")
                         .accessibilityHint("Choose how many minutes before the event to be reminded")
@@ -206,6 +224,16 @@ struct AddEventView: View {
         }
         .onAppear {
             savesViewModel.loadSavedPins()
+        }
+        .fullScreenCover(isPresented: $showPinPicker) {
+            PinPickerView(
+                pins: savesViewModel.savedPins,
+                selectedPin: selectedPin,
+                onPinSelected: { pin in
+                    selectedPin = pin
+                    showPinPicker = false
+                }
+            )
         }
     }
     
@@ -306,6 +334,134 @@ struct PinSelectionRow: View {
             
             Spacer()
         }
+    }
+}
+
+// MARK: - Pin Picker View
+
+struct PinPickerView: View {
+    let pins: [SavedPinEntity]
+    let selectedPin: SavedPinEntity?
+    let onPinSelected: (SavedPinEntity) -> Void
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        NavigationStack {
+            VStack(spacing: 0) {
+                if pins.isEmpty {
+                    VStack(spacing: 24) {
+                        Spacer()
+
+                        Image(systemName: "mappin.slash")
+                            .font(.system(size: 48))
+                            .foregroundColor(.secondary)
+
+                        Text("No Saved Pins")
+                            .font(.title2)
+                            .fontWeight(.semibold)
+                            .foregroundColor(.primary)
+
+                        Text("Save some locations first to use them in events")
+                            .font(.subheadline)
+                            .foregroundColor(.secondary)
+                            .multilineTextAlignment(.center)
+
+                        Spacer()
+                    }
+                    .padding(.horizontal, 20)
+                } else {
+                    ScrollView {
+                        LazyVStack(spacing: 12) {
+                            ForEach(pins, id: \.id) { pin in
+                                PinPickerRow(
+                                    pin: pin,
+                                    isSelected: selectedPin?.objectID == pin.objectID,
+                                    onTap: {
+                                        onPinSelected(pin)
+                                    }
+                                )
+                            }
+                        }
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 20)
+                    }
+                }
+            }
+            .navigationTitle("Select Location")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button("Cancel") {
+                        dismiss()
+                    }
+                    .foregroundColor(.blue)
+                }
+            }
+        }
+    }
+}
+
+struct PinPickerRow: View {
+    let pin: SavedPinEntity
+    let isSelected: Bool
+    let onTap: () -> Void
+
+    var body: some View {
+        Button(action: onTap) {
+            HStack(spacing: 16) {
+                // Pin category icon with color
+                if let category = pin.category {
+                    Circle()
+                        .fill(category.color)
+                        .frame(width: 44, height: 44)
+                        .overlay(
+                            Text(category.symbol)
+                                .font(.system(size: 18))
+                                .foregroundColor(.white)
+                        )
+                } else {
+                    Circle()
+                        .fill(Color.gray)
+                        .frame(width: 44, height: 44)
+                        .overlay(
+                            Image(systemName: "mappin.circle.fill")
+                                .font(.system(size: 18))
+                                .foregroundColor(.white)
+                        )
+                }
+
+                // Pin information
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(pin.placeName)
+                        .font(.body)
+                        .fontWeight(.medium)
+                        .foregroundColor(.primary)
+
+                    Text(pin.shortAddress)
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                        .lineLimit(1)
+                }
+
+                Spacer()
+
+                // Selection indicator
+                if isSelected {
+                    Image(systemName: "checkmark.circle.fill")
+                        .foregroundColor(.blue)
+                        .font(.system(size: 20))
+                }
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 12)
+            .background(isSelected ? Color.blue.opacity(0.1) : Color(.systemGray6))
+            .cornerRadius(12)
+            .overlay(
+                RoundedRectangle(cornerRadius: 12)
+                    .stroke(isSelected ? Color.blue : Color.clear, lineWidth: 2)
+            )
+        }
+        .buttonStyle(PlainButtonStyle())
     }
 }
 
